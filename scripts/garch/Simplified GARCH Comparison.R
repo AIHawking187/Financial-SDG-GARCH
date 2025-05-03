@@ -1,5 +1,8 @@
 
 #### Install Packages ####
+
+# Remove Comments if installing packages for the first time
+
 # install.packages("tidyverse")
 # install.packages("tidyr")
 # install.packages("dplyr")
@@ -12,8 +15,10 @@
 # install.packages("PerformanceAnalytics")
 # install.packages("stringr")
 # install.packages("FinTS")
+# install.packages("moments")
 # devtools::install_github("tidyverse/tidyr")
 
+# Libraries
 library(tidyverse)
 library(tidyr)
 library(dplyr)
@@ -25,13 +30,13 @@ library(rugarch)
 library(xts)
 library(PerformanceAnalytics)
 library(stringr)
-library(FinTS)  # For ArchTest
+library(FinTS)
+library(moments)
 
-#### Import the data ####
+#### Import the Equity data ####
 
-equity_tickers <- c("TSLA", "AAPL", "NVDA", "JPM", "JNJ")
-fx_names <- c("USDZAR", "GBPZAR", "EURZAR", "AUDZAR", "CHYZAR")
-
+equity_tickers <- c("NVDA", "AAPL", "AMZN", "DJT", "PDCO", "MLGO")
+fx_names <- c("USDZAR", "GBPZAR", "EURZAR", "GBPCNY", "EURUSD", "GBPUSD")
 
 equity_data <- lapply(equity_tickers, function(ticker) 
   {
@@ -40,28 +45,30 @@ equity_data <- lapply(equity_tickers, function(ticker)
 
 names(equity_data) <- equity_tickers
 
-#### Import ZAR_data and USD_data ####
-ZAR_data <- read.csv(file = "../input/raw.csv") %>% 
+#### Import FX data ####
+
+FX_data <- read.csv(file = "./data/raw/raw.csv") %>% 
   dplyr::mutate(
     Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
     Date = lubridate::ymd(Date)  # Convert strings to Date objects
                 ) 
 
-USD_data <- read.csv(file = "../input/exchange_rate_to_usd.csv") %>% 
-  dplyr::mutate(
-    date = stringr::str_replace_all(date, "-", ""),  # Remove dashes from dates
-    date = lubridate::ymd(date)  # Convert strings to Date objects
-                ) %>% 
-                dplyr::filter(date <= lubridate::ymd("2024-08-30") & date >= lubridate::ymd("2000-01-04"))
+# Ensure that the results folders are created before any plots or results are saved 
+if (!dir.exists("results/tables")) dir.create("results/tables", recursive = TRUE)
+if (!dir.exists("results/plots")) dir.create("results/plots", recursive = TRUE)
 
 
-#### Clean ZAR_data and USD_data####
+#### Clean FX_data ####
 fx_data <- lapply(fx_names, function(name) 
   {
-  xts(ZAR_data[[name]], order.by = ZAR_data$Date)
+  xts(FX_data[[name]], order.by = FX_data$Date)
   })
 
 names(fx_data) <- fx_names
+
+# Confirm the number of datapoints for the Equity and FX data
+sapply(equity_data, nrow)
+sapply(fx_data, nrow)
 
 #### Calculate Returns on Equity data ####
 equity_returns <- lapply(equity_data, function(x) CalculateReturns(x)[-1, ])
@@ -72,18 +79,37 @@ equity_returns <- lapply(equity_data, function(x) CalculateReturns(x)[-1, ])
 fx_returns <- lapply(fx_data, function(x) diff(log(x))[-1, ])
 
 #### Plotting Helpers ####
-plot_returns <- function(returns_list, title_prefix = "") 
-  {
-  for (name in names(returns_list)) 
-    {
-    chart.Histogram(returns_list[[name]], 
+plot_returns <- function(returns_list, title_prefix = "") {
+  folder_path <- paste0("results/plots/", title_prefix)
+  if (!dir.exists(folder_path)) dir.create(folder_path, recursive = TRUE)
+  
+  for (name in names(returns_list)) {
+    file_name <- paste0(folder_path, "/", name, "_hist.png")
+    png(file_name)
+    chart.Histogram(returns_list[[name]],
                     method = c("add.density", "add.normal"),
                     main = paste0(title_prefix, name),
                     colorset = c("blue", "red", "black"))
-    }
+    dev.off()
   }
+}
+
+plot_volatility_forecasts <- function(forecast_list, title_prefix = "") {
+  folder_path <- paste0("results/plots/", title_prefix)
+  if (!dir.exists(folder_path)) dir.create(folder_path, recursive = TRUE)
+  
+  for (name in names(forecast_list)) {
+    file_name <- paste0(folder_path, "/", name, "_volatility.png")
+    png(file_name)
+    sigma_vals <- sigma(forecast_list[[name]])
+    plot(sigma_vals, main = paste0(title_prefix, name), col = "blue", ylab = "Volatility")
+    dev.off()
+  }
+}
 
 plot_returns(equity_returns)
+plot_returns(fx_returns)
+
 
 #### Model Generator ####
 
@@ -104,9 +130,6 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
                  returns_list, specs, SIMPLIFY = FALSE)
   return(fits)
   }
-
-equity_gjr_models <- fit_models(equity_returns, "gjrGARCH", "sstd")
-fx_egarch_models   <- fit_models(fx_returns, "eGARCH", "sstd")
 
 #### Fit Models ####
 model_configs <- list(
@@ -131,19 +154,37 @@ for (config_name in names(model_configs))
   }
 
 
-
-#### Forecast Helper ####
+#### Forecast Financial Data ####
 forecast_models <- function(fit_list, n.ahead = 40) {
   lapply(fit_list, function(fit) ugarchforecast(fitORspec = fit, n.ahead = n.ahead))
 }
 
-equity_gjr_forecasts <- forecast_models(equity_gjr_models, n.ahead = 40)
-fx_egarch_forecasts  <- forecast_models(fx_egarch_models, n.ahead = 40)
-
 all_forecasts <- lapply(all_model_fits, forecast_models, n.ahead = 40)
 
-#### Evaluation ####
+for (key in names(all_forecasts)) {
+  plot_volatility_forecasts(all_forecasts[[key]], title_prefix = key)
+}
 
+# Save forecasted Financial data (if ever required)
+
+for (model_key in names(all_forecasts)) {
+  forecast_list <- all_forecasts[[model_key]]
+  asset_type <- ifelse(startsWith(model_key, "equity"), "equity", "fx")
+  model_name <- gsub("^(equity|fx)_", "", model_key)
+  
+  for (asset in names(forecast_list)) {
+    forecasted_returns <- as.numeric(fitted(forecast_list[[asset]]))
+    forecast_df <- data.frame(ForecastedReturns = forecasted_returns)
+    
+    write.csv(forecast_df,
+              file = paste0("results/tables/forecasts/", asset_type, "_", model_name, "_", asset, "_forecast.csv"),
+              row.names = FALSE)
+  }
+}
+
+#### Evaluation of Forecasted Financial Data ####
+
+# Helpers
 evaluate_model <- function(fit, forecast, actual_returns) 
   {
   actual <- tail(actual_returns, 40)
@@ -192,9 +233,6 @@ compare_models <- function(model_list, forecast_list, returns_list, model_name)
     return(all_results)
   }
 
-results_equity_gjr <- compare_models(equity_gjr_models, equity_gjr_forecasts, equity_returns, "GJR-GARCH_sstd")
-results_fx_egarch  <- compare_models(fx_egarch_models, fx_egarch_forecasts, fx_returns, "eGARCH_sstd")
-
 all_results <- data.frame()
 
 for (key in names(all_model_fits)) {
@@ -211,6 +249,7 @@ for (key in names(all_model_fits)) {
 
 names(all_results)
 
+# Rank results of forecasted financial data
 model_ranking <- all_results %>%
   group_by(Model) %>%
   dplyr::summarise(
@@ -226,7 +265,7 @@ model_ranking <- all_results %>%
 
 print(model_ranking)
 
-
+# Plot results of forecasted financial data
 plot_volatility_forecasts <- function(forecast_list, title_prefix = "") {
   par(mfrow = c(2, 3))
   for (name in names(forecast_list)) {
@@ -235,9 +274,87 @@ plot_volatility_forecasts <- function(forecast_list, title_prefix = "") {
   }
 }
 
-plot_volatility_forecasts(equity_gjr_forecasts, title_prefix = "GJR-GARCH - ")
-plot_volatility_forecasts(fx_egarch_forecasts, title_prefix = "eGARCH - ")
+for (key in names(all_forecasts)) {
+  forecast_list <- all_forecasts[[key]]
+  plot_volatility_forecasts(forecast_list, title_prefix = paste0(key, " - "))
+}
+
+#### Generate Synthetic Financial Data ####
+# Helper
+simulate_from_garch <- function(fit, n.sim = 1000, m.sim = 1) {
+  sim <- ugarchsim(fit, n.sim = n.sim, m.sim = m.sim)
+  return(fitted(sim)[,1])
+}
+
+#### Evaluation of Synthetic Data ####
+ 
+# Helper
+evaluate_simulation <- function(real, synthetic) {
+  ks <- tryCatch(ks.test(synthetic, real)$statistic, error = function(e) NA)
+  jb <- tryCatch(jarque.test(synthetic)$statistic, error = function(e) NA)
+  
+  return(data.frame(
+    Mean = mean(synthetic, na.rm = TRUE),
+    SD = sd(synthetic, na.rm = TRUE),
+    Skewness = skewness(synthetic, na.rm = TRUE),
+    Kurtosis = kurtosis(synthetic, na.rm = TRUE),
+    KS_Distance = ks,
+    Jarque_Bera = jb
+  ))
+}
+
+simulation_results <- data.frame()
+
+for (model_key in names(all_model_fits)) {
+  model_list <- all_model_fits[[model_key]]
+  asset_type <- ifelse(startsWith(model_key, "equity"), "equity", "fx")
+  model_name <- gsub("^(equity|fx)_", "", model_key)
+  return_list <- if (asset_type == "equity") equity_returns else fx_returns
+  
+  for (asset in names(model_list)) {
+    fit <- model_list[[asset]]
+    real <- as.numeric(return_list[[asset]])
+    sim <- simulate_from_garch(fit, n.sim = length(real))  # match length
+    
+    # Save simulated series
+    write.csv(data.frame(SimulatedReturns = sim),
+              file = paste0("results/tables/synthetic/", asset_type, "_", model_name, "_", asset, "_sim.csv"),
+              row.names = FALSE)
+    
+    # Evaluate and collect metrics
+    stats <- evaluate_simulation(real, sim)
+    stats$Asset <- asset
+    stats$Model <- model_name
+    stats$Type <- asset_type
+    
+    simulation_results <- rbind(simulation_results, stats)
+  }
+}
+
+# Rank results of models in generating synthetic data
+
+simulation_ranking <- simulation_results %>%
+  group_by(Model) %>%
+  summarise(
+    Avg_KS   = mean(KS_Distance, na.rm = TRUE),
+    Avg_JB   = mean(Jarque_Bera, na.rm = TRUE),
+    Avg_Skew = mean(Skewness, na.rm = TRUE),
+    Avg_Kurt = mean(Kurtosis, na.rm = TRUE)
+  ) %>%
+  arrange(Avg_KS)  # or arrange(Avg_JB) depending on what you prioritize
 
 
-write.csv(all_results, "garch_comparison.csv", row.names = FALSE)
+#### Save Results ####
+# Save evaluation summary of forecasted financial data 
+write.csv(all_results, "results/tables/garch_comparison.csv", row.names = FALSE)
+
+# Save Model ranking from evaluation of forecasted financial data
+write.csv(model_ranking, "results/tables/garch_model_ranking.csv", row.names = FALSE)
+
+# Save evaluation summary of synthetic financial data 
+write.csv(simulation_results, "results/tables/simulation_evaluation.csv", row.names = FALSE)
+
+# Save Model ranking from evaluation of synthetic financial data
+write.csv(simulation_ranking, "results/tables/simulation_model_ranking.csv", row.names = FALSE)
+
 
