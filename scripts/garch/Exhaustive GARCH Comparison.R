@@ -1,11 +1,10 @@
 #Reminder to Set your Working Directory
 
 #### Install Packages ####
-# install.packages("tidyverse")
+# Uncomment below if running for the first time
+# install.packages(c("tidyverse", "rugarch", "quantmod", "xts", "PerformanceAnalytics", "FinTS", "openxlsx"))
 # install.packages("tidyr")
 # install.packages("dplyr")
-# install.packages("devtools")
-# install.packages("magrittr")
 # install.packages("quantmod")
 # install.packages("tseries")
 # install.packages("rugarch")
@@ -13,25 +12,19 @@
 # install.packages("PerformanceAnalytics")
 # install.packages("stringr")
 # install.packages("FinTS")
-# devtools::install_github("tidyverse/tidyr")
-# install.packages(c("quantmod", "rvest", "dplyr", "xts", "stringr"))
 # install.packages("openxlsx")
 
 
 library(openxlsx)
-library(tidyverse)
-library(tidyr)
-library(dplyr)
-library(devtools)
-library(magrittr)
 library(quantmod)
 library(tseries)
 library(rugarch)
 library(xts)
 library(PerformanceAnalytics)
+library(FinTS)
+library(dplyr)
+library(tidyr)
 library(stringr)
-library(rvest)
-library(FinTS)  # For ArchTest
 
 #### Import the Equity data ####
 
@@ -88,7 +81,7 @@ sort(avg_volumes, decreasing = TRUE)
 
 #### Import the FX data ####
 
-FX_data <- read.csv(file = "../input/raw.csv") %>% 
+FX_data <- read.csv(file = "./data/raw/raw.csv") %>% 
   dplyr::mutate(
     Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
     Date = lubridate::ymd(Date)  # Convert strings to Date objects
@@ -115,21 +108,25 @@ fx_returns <- lapply(fx_data, function(x) diff(log(x))[-1, ])
 
 #### Plotting Helpers ####
 
-plot_returns <- function(returns_list, title_prefix = "") 
-  {
-  for (name in names(returns_list)) 
-    {
-    chart.Histogram(returns_list[[name]], 
-                    method = c("add.density", "add.normal"),
-                    main = paste0(title_prefix, name),
-                    colorset = c("blue", "red", "black"))
-    }
+plot_returns_and_save <- function(returns_list, prefix) {
+  dir_path <- file.path("results/plots/exhaustive", paste0("histograms_", prefix))
+  dir.create(dir_path, recursive = TRUE, showWarnings = FALSE)
+  
+  for (name in names(returns_list)) {
+    png(file.path(dir_path, paste0(name, "_histogram.png")), width = 800, height = 600)
+    chart.Histogram(returns_list[[name]], method = c("add.density", "add.normal"),
+                    main = paste(prefix, name), colorset = c("blue", "red", "black"))
+    dev.off()
   }
+}
 
-plot_returns(equity_returns)
+plot_returns_and_save(equity_returns, "Real_Equity")
+plot_returns_and_save(fx_returns, "Real_FX")
 
 
-#### Model Generator using Skewed Distribution - Automated across Normal and Student's T distribution ####
+
+
+#### Model Generator ####
 
 generate_spec <- function(model, dist = "sstd", submodel = NULL) 
   {
@@ -247,81 +244,67 @@ valid_fx_returns <- fx_returns[sapply(fx_returns, function(x) {
   nrow(x) > 520 && sd(x, na.rm = TRUE) > 0  # Ensure sufficient size and variability
 })]
 
-cv_fx_gjr <- lapply(valid_fx_returns, function(ret) 
-  ts_cross_validate(ret, model_type = "gjrGARCH", dist_type = "sstd", window_size = 500, forecast_horizon = 20)
-)
 
-
-cv_equity_egarch <- lapply(equity_returns, function(ret) 
-  ts_cross_validate(ret, model_type = "eGARCH", dist_type = "sstd", window_size = 500, forecast_horizon = 20)
-)
-
-
-cv_fx_gjr <- cv_fx_gjr[!sapply(cv_fx_gjr, is.null)]
-cv_equity_egarch <- cv_equity_egarch[!sapply(cv_equity_egarch, is.null)]
-
-#### Forecast Helper ####
+#### Forecast Financial Data ####
 
 forecast_models <- function(fit_list, n.ahead = 40) {
   lapply(fit_list, function(fit) ugarchforecast(fitORspec = fit, n.ahead = n.ahead))
 }
 
-equity_gjr_forecasts <- forecast_models(equity_gjr_models, n.ahead = 40)
-fx_egarch_forecasts  <- forecast_models(fx_egarch_models, n.ahead = 40)
-
 all_forecasts <- lapply(all_model_fits, forecast_models, n.ahead = 40)
 
-#### Evaluation ####
+#### Evaluation of Forecasted Financial Data ####
 
+# Helpers
 
-
-
-compare_models <- function(model_list, forecast_list, returns_list, model_name) 
-  {
-  all_results <- data.frame()
-  
-  for (asset in names(model_list)) 
-    {
-    fit <- model_list[[asset]]
-    fcast <- forecast_list[[asset]]
-    returns <- returns_list[[asset]]
-    
-    metrics <- evaluate_model(fit, fcast, returns)
-    metrics$Asset <- asset
-    metrics$Model <- model_name
-    all_results <- rbind(all_results, metrics)
-    }
-  
-    return(all_results)
+# Evaluate for 65/35 test set forecasts
+evaluate_chrono_split <- function(fit_list, test_returns, model_name) {
+  results <- data.frame()
+  for (asset in names(fit_list)) {
+    fit <- fit_list[[asset]]
+    fcast <- ugarchforecast(fit, n.ahead = length(test_returns[[asset]]))
+    eval <- evaluate_model(fit, fcast, test_returns[[asset]])
+    eval$Asset <- asset
+    eval$Model <- model_name
+    results <- rbind(results, eval)
   }
+  return(results)
+}
+
+chrono_split_results <- data.frame()
+for (model_key in names(all_model_fits)) {
+  model_list <- all_model_fits[[model_key]]
+  asset_type <- ifelse(startsWith(model_key, "equity"), "equity", "fx")
+  test_data  <- if (asset_type == "equity") equity_test_returns else fx_test_returns
+  model_name <- gsub("^(equity|fx)_", "", model_key)
+  chrono_split_results <- rbind(chrono_split_results, evaluate_chrono_split(model_list, test_data, model_name))
+}
+
 
 # Aggregate cross-validation metrics for each asset and model
-compare_cv_models <- function(cv_results_list, model_name) {
+
+compare_results <- function(results_list, model_name, is_cv = FALSE) {
   all_results <- data.frame()
   
-  for (asset in names(cv_results_list)) {
-    results <- cv_results_list[[asset]]
-    results$Asset <- asset
-    results$Model <- model_name
-    all_results <- rbind(all_results, results)
+  for (asset in names(results_list)) {
+    result <- results_list[[asset]]
+    if (!is.null(result)) {
+      result$Asset <- asset
+      result$Model <- model_name
+      
+      if (is_cv && !"WindowStart" %in% names(result)) {
+        result$WindowStart <- NA  # pad if needed for uniformity
+      }
+      
+      all_results <- rbind(all_results, result)
+    }
   }
   
   return(all_results)
 }
 
-
-results_equity_gjr <- compare_models(equity_gjr_models, equity_gjr_forecasts, equity_returns, "GJR-GARCH_sstd")
-results_fx_egarch  <- compare_models(fx_egarch_models, fx_egarch_forecasts, fx_returns, "eGARCH_sstd")
-
+# Compare results for 65/35 forecast
 all_results <- data.frame()
-
-cv_fx_gjr_summary     <- compare_cv_models(cv_fx_gjr, "GJR-GARCH_sstd")
-cv_equity_egarch_summary <- compare_cv_models(cv_equity_egarch, "eGARCH_sstd")
-
-# Combine all CV results
-cv_all_results <- rbind(cv_fx_gjr_summary, cv_equity_egarch_summary)
-
-
 
 for (key in names(all_model_fits)) {
   model_set <- all_model_fits[[key]]
@@ -331,102 +314,54 @@ for (key in names(all_model_fits)) {
   model_name <- gsub("^(equity|fx)_", "", key)
   return_list <- if (asset_type == "equity") equity_returns else fx_returns
   
-  comparison <- compare_models(model_set, forecast_set, return_list, model_name)
+  comparison <- compare_results(
+    setNames(Map(function(fit, forecast, ret) evaluate_model(fit, forecast, ret), 
+                 model_set, forecast_set, return_list), 
+             names(model_set)),
+    model_name,
+    is_cv = FALSE
+  )
+  
   all_results <- rbind(all_results, comparison)
 }
 
 names(all_results)
 
-model_ranking <- all_results %>%
-  group_by(Model) %>%
-  dplyr::summarise(
-    Avg_AIC  = mean(AIC, na.rm = TRUE),
-    Avg_BIC  = mean(BIC, na.rm = TRUE),
-    Avg_LL   = mean(LogLikelihood, na.rm = TRUE),
-    Avg_MSE  = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Avg_MAE  = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Mean_Q_Stat = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
-    Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE)
-  ) %>%
-  arrange(Avg_MSE)
 
-print(model_ranking)
+# Rank results of forecasted financial data
 
-model_ranking_cv <- cv_all_results %>%
-  group_by(Model) %>%
-  summarise(
-    Avg_AIC        = mean(AIC, na.rm = TRUE),
-    Avg_BIC        = mean(BIC, na.rm = TRUE),
-    Avg_LL         = mean(LogLikelihood, na.rm = TRUE),
-    Avg_MSE        = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Avg_MAE        = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Mean_Q_Stat    = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
-    Mean_ARCH_LM   = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE)
-  ) %>%
-  arrange(Avg_MSE)
-
-
-cv_asset_model_summary <- cv_all_results %>%
-  group_by(Model, Asset) %>%
-  summarise(
-    Avg_MSE = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Avg_MAE = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
-    .groups = 'drop'
-  ) %>%
-  arrange(Model, Avg_MSE)
-
-
-plot_volatility_forecasts <- function(forecast_list, title_prefix = "") {
-  par(mfrow = c(2, 3))
-  for (name in names(forecast_list)) {
-    sigma_vals <- sigma(forecast_list[[name]])
-    plot(sigma_vals, main = paste0(title_prefix, name), col = "blue", ylab = "Volatility")
-  }
+rank_models <- function(results_df, label = NULL) {
+  results_df %>%
+    group_by(Model) %>%
+    summarise(
+      Avg_AIC      = mean(AIC, na.rm = TRUE),
+      Avg_BIC      = mean(BIC, na.rm = TRUE),
+      Avg_LL       = mean(LogLikelihood, na.rm = TRUE),
+      Avg_MSE      = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+      Avg_MAE      = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
+      Mean_Q_Stat  = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
+      Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE),
+      .groups = 'drop'
+    ) %>%
+    arrange(Avg_MSE) %>%
+    mutate(Source = label)
 }
 
-plot_volatility_forecasts(equity_gjr_forecasts, title_prefix = "GJR-GARCH - ")
-plot_volatility_forecasts(fx_egarch_forecasts, title_prefix = "eGARCH - ")
 
-#Export the Results
-write.csv(all_results, "garch_comparison.csv", row.names = FALSE)
-write.csv(cv_all_results, "garch_cv_results.csv", row.names = FALSE)
-write.csv(model_ranking_cv, "garch_cv_model_ranking.csv", row.names = FALSE)
-write.csv(model_ranking, "garch_test_model_ranking.csv", row.names = FALSE)
-
-# Create a new workbook
-wb <- createWorkbook()
-
-# Add each sheet
-addWorksheet(wb, "Chrono_Split_Eval")
-writeData(wb, "Chrono_Split_Eval", all_results)
-
-addWorksheet(wb, "CV_Results")
-writeData(wb, "CV_Results", cv_all_results)
-
-addWorksheet(wb, "CV_Model_Ranking")
-writeData(wb, "CV_Model_Ranking", model_ranking_cv)
-
-addWorksheet(wb, "Test_Model_Ranking")
-writeData(wb, "Test_Model_Ranking", model_ranking)
-
-addWorksheet(wb, "CV_Asset_Model_Summary")
-writeData(wb, "CV_Asset_Model_Summary", cv_asset_model_summary)
-
-# Save the workbook
-saveWorkbook(wb, "GARCH_Model_Evaluation_Summary.xlsx", overwrite = TRUE)
+# model_ranking_cv <- cv_all_results %>%
+#   group_by(Model) %>%
+#   summarise(
+#     Avg_AIC        = mean(AIC, na.rm = TRUE),
+#     Avg_BIC        = mean(BIC, na.rm = TRUE),
+#     Avg_LL         = mean(LogLikelihood, na.rm = TRUE),
+#     Avg_MSE        = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+#     Avg_MAE        = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
+#     Mean_Q_Stat    = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
+#     Mean_ARCH_LM   = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE)
+#   ) %>%
+#   arrange(Avg_MSE)
 
 
-
-#Export the equity data
-
-# # Combine list of xts objects into a single xts with aligned dates
-# equity_data_xts <- do.call(merge, equity_data_check)
-# 
-# # Convert xts to data.frame for CSV export
-# equity_data_df <- data.frame(Date = index(equity_data_xts), coredata(equity_data_xts))
-# 
-# # Write to CSV
-# write.csv(equity_data_df, "equity_data.csv", row.names = FALSE)
 
 # Run all CV Models
 
@@ -458,62 +393,313 @@ run_all_cv_models <- function(returns_list, model_configs, window_size = 500, fo
   return(cv_results_all)
 }
 
-# Optional: Clean returns beforehand
 valid_fx_returns <- fx_returns[sapply(fx_returns, function(x) nrow(x) > 520 && sd(x, na.rm = TRUE) > 0)]
 valid_equity_returns <- equity_returns[sapply(equity_returns, function(x) nrow(x) > 520 && sd(x, na.rm = TRUE) > 0)]
 
 cv_fx_all_models     <- run_all_cv_models(valid_fx_returns, model_configs)
 cv_equity_all_models <- run_all_cv_models(valid_equity_returns, model_configs)
 
-compare_cv_models <- function(cv_results_list, model_name) {
-  all_results <- data.frame()
-  
-  for (asset in names(cv_results_list)) {
-    results <- cv_results_list[[asset]]
-    if (!is.null(results)) {
-      results$Asset <- asset
-      results$Model <- model_name
-      all_results <- rbind(all_results, results)
-    }
-  }
-  
-  return(all_results)
-}
 
 # Flatten all CV results into one data frame
 cv_all_results <- data.frame()
 
 for (model_name in names(cv_fx_all_models)) {
-  fx_results <- compare_cv_models(cv_fx_all_models[[model_name]], model_name)
-  eq_results <- compare_cv_models(cv_equity_all_models[[model_name]], model_name)
-  
+  fx_results <- compare_results(cv_fx_all_models[[model_name]], model_name, is_cv = TRUE)
+  eq_results <- compare_results(cv_equity_all_models[[model_name]], model_name, is_cv = TRUE)
   cv_all_results <- rbind(cv_all_results, fx_results, eq_results)
 }
 
 
-write.csv(cv_all_results, "garch_cv_results_all_models.csv", row.names = FALSE)
+# Compare results for rolling CV
+# cv_model_ranking_all <- cv_all_results %>%
+#   group_by(Model) %>%
+#   summarise(
+#     Avg_AIC  = mean(AIC, na.rm = TRUE),
+#     Avg_BIC  = mean(BIC, na.rm = TRUE),
+#     Avg_LL   = mean(LogLikelihood, na.rm = TRUE),
+#     Avg_MSE  = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+#     Avg_MAE  = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
+#     Mean_Q_Stat = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
+#     Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE),
+#     .groups = 'drop'
+#   ) %>%
+#   arrange(Avg_MSE)
 
-cv_model_ranking_all <- cv_all_results %>%
-  group_by(Model) %>%
+ranking_chrono <- rank_models(all_results, "Chrono_Split")
+ranking_cv     <- rank_models(cv_all_results, "TS_CV")
+ranking_combined <- bind_rows(ranking_chrono, ranking_cv)
+
+cv_asset_model_summary <- cv_all_results %>%
+  group_by(Model, Asset) %>%
   summarise(
-    Avg_AIC  = mean(AIC, na.rm = TRUE),
-    Avg_BIC  = mean(BIC, na.rm = TRUE),
-    Avg_LL   = mean(LogLikelihood, na.rm = TRUE),
-    Avg_MSE  = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Avg_MAE  = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
-    Mean_Q_Stat = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
-    Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE),
+    Avg_MSE = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+    Avg_MAE = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  arrange(Avg_MSE)
+  arrange(Model, Avg_MSE)
 
-write.csv(cv_model_ranking_all, "garch_cv_model_ranking_all.csv", row.names = FALSE)
+# Plot results of forecasted financial data
+plot_and_save_volatility_forecasts <- function(forecast_list, model_name, asset_type) {
+  dir_path <- file.path("results/plots/exhaustive", paste0("volatility_", model_name, "_", asset_type))
+  dir.create(dir_path, recursive = TRUE, showWarnings = FALSE)
+  
+  for (asset in names(forecast_list)) {
+    sigma_vals <- sigma(forecast_list[[asset]])
+    
+    png(file.path(dir_path, paste0(asset, "_volatility.png")), width = 800, height = 600)
+    plot(sigma_vals, main = paste("Volatility Forecast:", asset, "-", model_name), col = "blue", ylab = "Volatility")
+    dev.off()
+  }
+}
+
+for (key in names(all_forecasts)) {
+  asset_type <- ifelse(startsWith(key, "equity"), "equity", "fx")
+  model_name <- gsub("^(equity|fx)_", "", key)
+  plot_and_save_volatility_forecasts(all_forecasts[[key]], model_name, asset_type)
+}
+
+
+#### Generate Synthetic Financial Data ####
+# Helper
+simulate_from_garch <- function(fit, n.sim = 1000, m.sim = 1) {
+  sim <- ugarchsim(fit, n.sim = n.sim, m.sim = m.sim)
+  return(fitted(sim)[,1])
+}
+
+synthetic_returns <- list()
+
+for (model_key in names(all_model_fits)) {
+  model_list <- all_model_fits[[model_key]]
+  for (asset in names(model_list)) {
+    real_index <- if (asset %in% names(fx_returns)) {
+      index(fx_returns[[asset]])
+    } else {
+      index(equity_returns[[asset]])
+    }
+    simulated  <- simulate_from_garch(model_list[[asset]], n.sim = length(real_index))
+    synthetic_returns[[asset]] <- xts(simulated, order.by = real_index)
+  }
+}
+
+
+
+split_synthetic_returns <- function(syn_returns_list, split_ratio = 0.65) {
+  chrono_split <- list()
+  for (name in names(syn_returns_list)) {
+    x <- syn_returns_list[[name]]
+    idx <- get_split_index(x, split_ratio)
+    chrono_split[[name]] <- list(
+      train = x[1:idx],
+      test  = x[(idx + 1):length(x)]
+    )
+  }
+  return(chrono_split)
+}
+
+synthetic_chrono_split <- split_synthetic_returns(synthetic_returns)
+
+
+fit_synthetic_models <- function(split_list, model_configs) {
+  all_synth_fits <- list()
+  
+  for (model_name in names(model_configs)) {
+    cfg <- model_configs[[model_name]]
+    
+    fits <- lapply(split_list, function(s) {
+      tryCatch({
+        spec <- generate_spec(cfg$model, cfg$dist, cfg$submodel)
+        ugarchfit(data = s$train, spec = spec)
+      }, error = function(e) NULL)
+    })
+    
+    names(fits) <- names(split_list)
+    all_synth_fits[[model_name]] <- fits
+  }
+  return(all_synth_fits)
+}
+
+synth_model_fits <- fit_synthetic_models(synthetic_chrono_split, model_configs)
+
+
+#### Evaluation of Synthetic Data ####
+
+# Helper
+evaluate_simulation <- function(real, synthetic) {
+  ks <- tryCatch(ks.test(synthetic, real)$statistic, error = function(e) NA)
+  jb <- tryCatch(jarque.test(synthetic)$statistic, error = function(e) NA)
+  
+  return(data.frame(
+    Mean = mean(synthetic, na.rm = TRUE),
+    SD = sd(synthetic, na.rm = TRUE),
+    Skewness = skewness(synthetic, na.rm = TRUE),
+    Kurtosis = kurtosis(synthetic, na.rm = TRUE),
+    KS_Distance = ks,
+    Jarque_Bera = jb
+  ))
+}
+
+evaluate_simulated_chrono <- function(real_returns, sim_returns) {
+  test_idx <- get_split_index(real_returns, split_ratio = 0.65)
+  evaluate_simulation(real_returns[(test_idx + 1):length(real_returns)], sim_returns[(test_idx + 1):length(real_returns)])
+}
+
+evaluate_synth_chrono <- function(fit_list, split_list) {
+  results <- data.frame()
+  
+  for (model_name in names(fit_list)) {
+    for (asset in names(fit_list[[model_name]])) {
+      fit <- fit_list[[model_name]][[asset]]
+      test <- split_list[[asset]]$test
+      
+      if (!is.null(fit)) {
+        fcast <- ugarchforecast(fit, n.ahead = length(test))
+        eval <- evaluate_model(fit, fcast, test)
+        eval$Asset <- asset
+        eval$Model <- model_name
+        eval$Source <- "Synthetic_Chrono"
+        results <- rbind(results, eval)
+      }
+    }
+  }
+  return(results)
+}
+
+synth_chrono_results <- evaluate_synth_chrono(synth_model_fits, synthetic_chrono_split)
+
+synthetic_returns_xts <- lapply(synthetic_returns, function(x) xts(x, order.by = index(x)))
+
+synth_cv_models <- run_all_cv_models(synthetic_returns_xts, model_configs)
+
+synth_cv_results <- data.frame()
+for (model_name in names(synth_cv_models)) {
+  res <- compare_results(synth_cv_models[[model_name]], model_name, is_cv = TRUE)
+  res$Source <- "Synthetic_CV"
+  synth_cv_results <- rbind(synth_cv_results, res)
+}
+
+
+
+simulation_results <- data.frame()
+
+for (model_key in names(all_model_fits)) {
+  model_list <- all_model_fits[[model_key]]
+  asset_type <- ifelse(startsWith(model_key, "equity"), "equity", "fx")
+  model_name <- gsub("^(equity|fx)_", "", model_key)
+  return_list <- if (asset_type == "equity") equity_returns else fx_returns
+  
+  for (asset in names(model_list)) {
+    fit <- model_list[[asset]]
+    real <- as.numeric(return_list[[asset]])
+    sim <- simulate_from_garch(fit, n.sim = length(real))
+    
+    # Save synthetic returns
+    write.csv(data.frame(SimulatedReturns = sim),
+              file = paste0("results/tables/synthetic/", asset_type, "_", model_name, "_", asset, "_sim.csv"),
+              row.names = FALSE)
+    
+    # Evaluate
+    stats <- evaluate_simulation(real, sim)
+    stats$Asset <- asset
+    stats$Model <- model_name
+    stats$Type <- asset_type
+    
+    simulation_results <- rbind(simulation_results, stats)
+  }
+}
+
+# Rank results of models in generating synthetic data
+
+simulation_ranking <- simulation_results %>%
+  group_by(Model) %>%
+  summarise(
+    Avg_KS   = mean(KS_Distance, na.rm = TRUE),
+    Avg_JB   = mean(Jarque_Bera, na.rm = TRUE),
+    Avg_Skew = mean(Skewness, na.rm = TRUE),
+    Avg_Kurt = mean(Kurtosis, na.rm = TRUE)
+  ) %>%
+  arrange(Avg_KS)  # or arrange(Avg_JB) depending on what you prioritize
+
+ranking_synth_chrono <- rank_models(synth_chrono_results, "Synthetic_Chrono")
+ranking_synth_cv     <- rank_models(synth_cv_results, "Synthetic_CV")
+
+ranking_all_combined <- bind_rows(ranking_chrono, ranking_cv, ranking_synth_chrono, ranking_synth_cv)
+
+synth_cv_asset_summary <- synth_cv_results %>%
+  group_by(Model, Asset) %>%
+  summarise(
+    Avg_MSE = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+    Avg_MAE = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  arrange(Model, Avg_MSE)
+
+plot_and_save_real_vs_synthetic <- function(real_list, synthetic_list, model_name, asset_type) {
+  dir_path <- file.path("results/plots/exhaustive", paste0("real_vs_synthetic_", model_name, "_", asset_type))
+  dir.create(dir_path, recursive = TRUE, showWarnings = FALSE)
+  
+  for (asset in intersect(names(real_list), names(synthetic_list))) {
+    real <- real_list[[asset]]
+    synthetic <- synthetic_list[[asset]]
+    
+    png(file.path(dir_path, paste0(asset, "_real_vs_synthetic.png")), width = 800, height = 600)
+    ts.plot(cbind(real, synthetic), col = c("black", "blue"), lty = c(1, 2),
+            main = paste("Real vs Synthetic:", asset, "-", model_name),
+            ylab = "Returns")
+    legend("topright", legend = c("Real", "Synthetic"), col = c("black", "blue"), lty = c(1, 2))
+    dev.off()
+  }
+}
+
+for (key in names(all_model_fits)) {
+  asset_type <- ifelse(startsWith(key, "equity"), "equity", "fx")
+  model_name <- gsub("^(equity|fx)_", "", key)
+  real_list  <- if (asset_type == "equity") equity_returns else fx_returns
+  
+  plot_and_save_real_vs_synthetic(real_list, synthetic_returns, model_name, asset_type)
+}
+
+plot_returns_and_save(synthetic_returns, "Synthetic")
+
+#### Save Results ####
+
+# Create a new workbook
+wb <- createWorkbook()
+
+# Add each sheet
+addWorksheet(wb, "Chrono_Split_Eval")
+writeData(wb, "Chrono_Split_Eval", all_results)
+
+addWorksheet(wb, "CV_Results")
+writeData(wb, "CV_Results", cv_all_results)
+
+addWorksheet(wb, "CV_Asset_Model_Summary")
+writeData(wb, "CV_Asset_Model_Summary", cv_asset_model_summary)
 
 addWorksheet(wb, "CV_Results_All")
 writeData(wb, "CV_Results_All", cv_all_results)
 
-addWorksheet(wb, "CV_Model_Ranking_All")
-writeData(wb, "CV_Model_Ranking_All", cv_model_ranking_all)
+addWorksheet(wb, "Model_Ranking_All")
+writeData(wb, "Model_Ranking_All", ranking_combined)
+
+addWorksheet(wb, "Synthetic_Chrono_Eval")
+writeData(wb, "Synthetic_Chrono_Eval", synth_chrono_results)
+
+addWorksheet(wb, "Synthetic_CV_Eval")
+writeData(wb, "Synthetic_CV_Eval", synth_cv_results)
+
+addWorksheet(wb, "All_Model_Ranking")
+writeData(wb, "All_Model_Ranking", ranking_all_combined)
+
+addWorksheet(wb, "Synthetic_Distribution_Eval")
+writeData(wb, "Synthetic_Distribution_Eval", simulation_results)
+
+addWorksheet(wb, "Synthetic_Distribution_Rank")
+writeData(wb, "Synthetic_Distribution_Rank", simulation_ranking)
+
+addWorksheet(wb, "Synth_CV_Asset_Summary")
+writeData(wb, "Synth_CV_Asset_Summary", synth_cv_asset_summary)
+
 
 saveWorkbook(wb, "GARCH_Model_Evaluation_Summary.xlsx", overwrite = TRUE)
+
 
