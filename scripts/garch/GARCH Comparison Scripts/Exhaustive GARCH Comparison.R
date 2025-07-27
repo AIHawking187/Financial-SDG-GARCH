@@ -28,7 +28,8 @@ library(stringr)
 
 #### Import the Equity data ####
 
-equity_tickers <- c("NVDA", "AAPL", "AMZN", "DJT", "PDCO", "MLGO")
+# equity_tickers <- c("NVDA", "AAPL", "AMZN", "DJT", "PDCO", "MLGO")
+equity_tickers <- c("NVDA", "AAPL", "AMZN", "DJT", "MLGO")
 fx_names <- c("EURUSD", "GBPUSD", "GBPCNY","USDZAR", "GBPZAR", "EURZAR")
 
 
@@ -659,6 +660,28 @@ for (key in names(all_model_fits)) {
 }
 
 plot_returns_and_save(synthetic_returns, "Synthetic")
+
+
+#### To enable training of a Normalizing Flow (NF) on GARCH residuals ####
+fx_egarch_models <- fit_models(fx_returns, "eGARCH", "sstd")
+
+
+# === Extract and Save Residuals for USDZAR ===
+usdzar_fit <- fx_egarch_models$USDZAR
+usdzar_resid <- residuals(usdzar_fit, standardize = TRUE)
+
+write.csv(as.numeric(usdzar_resid), "residuals_usdzar.csv", row.names = FALSE)
+
+# # If you want to save residuals for all FX assets under fx_egarch_models
+# dir.create("residuals", showWarnings = FALSE)
+# 
+# for (asset in names(fx_egarch_models)) {
+#   res <- residuals(fx_egarch_models[[asset]], standardize = TRUE)
+#   write.csv(as.numeric(res), file = paste0("residuals/", asset, "_resid.csv"), row.names = FALSE)
+# }
+# 
+
+
 
 #### Save Results ####
 
