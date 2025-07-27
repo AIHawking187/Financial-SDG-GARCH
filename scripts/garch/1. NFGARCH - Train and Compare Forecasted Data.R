@@ -1,19 +1,5 @@
 #Reminder to Set your Working Directory
 
-#### Install Packages ####
-# Uncomment below if running for the first time
-# install.packages(c("tidyverse", "rugarch", "quantmod", "xts", "PerformanceAnalytics", "FinTS", "openxlsx"))
-# install.packages("tidyr")
-# install.packages("dplyr")
-# install.packages("quantmod")
-# install.packages("tseries")
-# install.packages("rugarch")
-# install.packages("xts")
-# install.packages("PerformanceAnalytics")
-# install.packages("stringr")
-# install.packages("FinTS")
-# install.packages("openxlsx")
-
 # Libraries
 library(openxlsx)
 library(quantmod)
@@ -26,49 +12,62 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 
-#### Import the Equity data ####
 
-# Main Tickers
-  equity_tickers <- c("NVDA", "AAPL", "AMZN", "DJT", "TSLA", "MLGO")
-  fx_names <- c("EURUSD", "GBPUSD", "GBPCNY","USDZAR", "GBPZAR", "EURZAR")
+#### Import the FX + EQ price data ####
+
+# Read CSV with Date in first column (row names)
   
-# Pull the Equity data
-  equity_data <- lapply(equity_tickers, function(ticker) 
-      {
-      quantmod::getSymbols(ticker, from = "2000-01-04", to = "2024-08-30", auto.assign = FALSE)[, 6]
-      }
-    )
+  raw_price_data <- read.csv("./data/processed/raw (FX + EQ).csv", row.names = 1)
+
+# Convert row names into a Date column
   
-  names(equity_data) <- equity_tickers
+  raw_price_data$Date <- lubridate::ymd(rownames(raw_price_data))
+  rownames(raw_price_data) <- NULL
+
+# Move Date to the front
+
+  raw_price_data <- raw_price_data %>% dplyr::select(Date, everything())
 
 
-#### Import the FX data ####
+#### Clean the Price data####
 
-FX_data <- read.csv(file = "./data/raw/raw.csv") %>% 
-  dplyr::mutate(
-    Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
-    Date = lubridate::ymd(Date)  # Convert strings to Date objects
-                ) 
+# Extract date vector
+  
+  date_index <- raw_price_data$Date
+  
+# Remove date column from data matrix
+  
+  price_data_matrix <- raw_price_data[, !(names(raw_price_data) %in% "Date")]
+  
+# Define equity and FX tickers (ensure they match column names exactly)
+  
+  equity_tickers <- c("NVDA", "MSFT", "PG", "CAT", "WMT", "AMZN")
+  fx_names <- c("EURUSD", "GBPUSD", "GBPCNY", "USDZAR", "GBPZAR", "EURZAR")
+  
+# Split into equity and FX price matrices
+  
+  equity_xts <- lapply(equity_tickers, function(ticker)
+  {
+    xts(price_data_matrix[[ticker]], order.by = date_index)
+  })
+  
+  names(equity_xts) <- equity_tickers
+  
+  fx_xts <- lapply(fx_names, function(ticker) 
+  {
+    xts(price_data_matrix[[ticker]], order.by = date_index)
+  })
+  
+  names(fx_xts) <- fx_names
+  
 
-#### Clean the FX data####
 
-fx_data <- lapply(fx_names, function(name) 
-    {
-    xts(FX_data[[name]], order.by = FX_data$Date)
-    }
-  )
+#### Calculate Returns on FX and Equity data ####
 
-names(fx_data) <- fx_names
-
-#### Calculate Returns on Equity data ####
-
-equity_returns <- lapply(equity_data, function(x) CalculateReturns(x)[-1, ])
-
-#### Calculate Returns on FX data ####
-
-# Convert FX series to xts objects
-
-fx_returns <- lapply(fx_data, function(x) diff(log(x))[-1, ])
+# Calculate returns
+  
+  equity_returns <- lapply(equity_xts, function(x) CalculateReturns(x)[-1, ])
+  fx_returns     <- lapply(fx_xts,     function(x) diff(log(x))[-1, ])
 
 #### Plotting returns data ####
 
@@ -84,8 +83,10 @@ plot_returns_and_save <- function(returns_list, prefix) {
   }
 }
 
-plot_returns_and_save(equity_returns, "Real_Equity")
-plot_returns_and_save(fx_returns, "Real_FX")
+# Plot returns histograms to results folder under exhaustive plots  
+  
+  plot_returns_and_save(equity_returns, "Real_Equity")
+  plot_returns_and_save(fx_returns, "Real_FX")
 
 
 #### Model Generator ####
@@ -296,6 +297,7 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
            ))
   }
 
+  
 # Helper to rank results of forecasted financial data
   
   rank_models <- function(results_df, label = NULL) 
