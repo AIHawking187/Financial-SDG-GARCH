@@ -151,20 +151,82 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
       train_set <- returns[start_idx:(start_idx + window_size - 1)]
       test_set  <- returns[(start_idx + window_size):(start_idx + window_size + forecast_horizon - 1)]
       
+      # 🔍 Print diagnostics before fitting
+      message("📦 Start index: ", start_idx, 
+              " | Train size: ", nrow(train_set), 
+              " | Test size: ", nrow(test_set),
+              " | Train SD: ", round(sd(train_set, na.rm = TRUE), 6))
+      
       spec <- generate_spec(model_type, dist_type, submodel)
       
-      try({
-        fit <- ugarchfit(data = train_set, spec = spec, solver = "hybrid")
-        forecast <- ugarchforecast(fit, n.ahead = forecast_horizon)
-        eval <- evaluate_model(fit, forecast, test_set)
-        eval$WindowStart <- index(train_set[1])
-        results[[length(results) + 1]] <- eval
-      }, silent = TRUE)
+      # 🔒 Try fitting GARCH model
+      fit <- tryCatch({
+        ugarchfit(data = train_set, spec = spec, solver = "hybrid")
+      }, error = function(e) {
+        message("❌ Fit error at index ", start_idx, ": ", e$message)
+        return(NULL)
+      })
+      
+      if (!is.null(fit)) {
+        forecast <- tryCatch({
+          ugarchforecast(fit, n.ahead = forecast_horizon)
+        }, error = function(e) {
+          message("❌ Forecast error at index ", start_idx, ": ", e$message)
+          return(NULL)
+        })
+        
+        if (!is.null(forecast)) {
+          eval <- tryCatch({
+            evaluate_model(fit, forecast, test_set)
+          }, error = function(e) {
+            message("❌ Evaluation error at index ", start_idx, ": ", e$message)
+            return(NULL)
+          })
+          
+          if (!is.null(eval)) {
+            eval$WindowStart <- index(train_set[1])
+            results[[length(results) + 1]] <- eval
+          }
+        }
+      }
     }
     
-    if (length(results) == 0) return(NULL)
-    do.call(rbind, results)
+    if (length(results) == 0) {
+      message("⚠️ No successful CV results for this series.")
+      return(NULL)
+    }
+    
+    return(results)
   }
+  
+  # Helper to evaluate results across each TS CV Window
+  evaluate_model <- function(fit, forecast, actual_returns) 
+  {
+    actual <- tail(actual_returns, 40)
+    pred   <- fitted(forecast)
+    
+    # Ensure same length
+    actual <- actual[1:min(nrow(actual), nrow(pred))]
+    pred   <- pred[1:min(nrow(actual), nrow(pred))]
+    
+    mse <- mean((actual - pred)^2, na.rm = TRUE)
+    mae <- mean(abs(actual - pred), na.rm = TRUE)
+    
+    q_stat_p <- tryCatch(Box.test(residuals(fit), lag = 10, type = "Ljung-Box")$p.value, error = function(e) NA)
+    arch_p   <- tryCatch(ArchTest(residuals(fit), lags = 10)$p.value, error = function(e) NA)
+    
+    return(data.frame
+           (
+             AIC = infocriteria(fit)[1],
+             BIC = infocriteria(fit)[2],
+             LogLikelihood = likelihood(fit),
+             `MSE (Forecast vs Actual)` = mse,
+             `MAE (Forecast vs Actual)` = mae,
+             `Q-Stat (p>0.05)` = q_stat_p,
+             `ARCH LM (p>0.05)` = arch_p
+           ))
+  } 
+  
   
 #### Train the GARCH Models using Chrono split and TS CV Split ####
   
@@ -184,34 +246,36 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   
 # Helper to run all CV models across window size of x and a forecast horizon of y
   
-  run_all_cv_models <- function(returns_list, model_configs, window_size = 500, forecast_horizon = 40) 
-  {
+  run_all_cv_models <- function(returns_list, model_configs, window_size = 500, forecast_horizon = 40) {
     cv_results_all <- list()
     
     for (model_name in names(model_configs)) {
       cfg <- model_configs[[model_name]]
-      
-      message("Running CV for: ", model_name)
+      message("⚙️ Running CV for model: ", model_name)
       
       result <- lapply(returns_list, function(ret) {
-        tryCatch({
-          ts_cross_validate(ret, 
-                            model_type = cfg$model, 
-                            dist_type  = cfg$dist, 
-                            submodel   = cfg$submodel,
-                            window_size = window_size,
-                            forecast_horizon = forecast_horizon)
-        }, error = function(e) NULL)
+        ts_cross_validate(ret, 
+                          model_type = cfg$model, 
+                          dist_type  = cfg$dist, 
+                          submodel   = cfg$submodel,
+                          window_size = window_size,
+                          forecast_horizon = forecast_horizon)
       })
       
-      # Keep non-null results only
+      # Label by asset names
+      names(result) <- names(returns_list)
+      
+      # Remove nulls
       result <- result[!sapply(result, is.null)]
+      
+      message("✅ CV fits found for assets: ", paste(names(result), collapse = ", "))
       
       cv_results_all[[model_name]] <- result
     }
     
     return(cv_results_all)
   }
+  
   
 # Check and ensure sufficient size and variability across each window
   
@@ -222,16 +286,69 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   
   Fitted_FX_TS_CV_models     <- run_all_cv_models(valid_fx_returns, model_configs)
   Fitted_EQ_TS_CV_models <- run_all_cv_models(valid_equity_returns, model_configs)
+
+  # Helper to evaluate results across the 65/35 chronological split
+  
+  compare_results <- function(cv_result_list, model_name, is_cv = FALSE) {
+    if (length(cv_result_list) == 0) return(NULL)
+    
+    all_rows <- list()
+    
+    for (asset_name in names(cv_result_list)) {
+      asset_result <- cv_result_list[[asset_name]]
+      
+      for (window_eval in asset_result) {
+        # Ensure it's a data frame
+        if (!is.null(window_eval) && is.data.frame(window_eval)) {
+          # Add metadata
+          window_eval$Asset <- asset_name
+          window_eval$Model <- model_name
+          window_eval$Type  <- ifelse(is_cv, "CV", "Chrono")
+          
+          all_rows[[length(all_rows) + 1]] <- window_eval
+        }
+      }
+    }
+    
+    if (length(all_rows) == 0) return(NULL)
+    
+    # Before binding, make sure all have the same columns
+    common_cols <- Reduce(intersect, lapply(all_rows, names))
+    all_rows <- lapply(all_rows, function(df) df[, common_cols, drop = FALSE])
+    
+    return(bind_rows(all_rows))
+  }
+  
   
 # Flatten all CV results into one data frame
   
   Fitted_TS_CV_models <- data.frame()
   
   for (model_name in names(Fitted_FX_TS_CV_models)) {
-    fx_results <- compare_results(Fitted_FX_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
-    eq_results <- compare_results(Fitted_EQ_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
-    Fitted_TS_CV_models <- rbind(Fitted_TS_CV_models, fx_results, eq_results)
+    fx_results <- tryCatch({
+      compare_results(Fitted_FX_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
+    }, error = function(e) {
+      message("⚠️ FX compare_results failed for: ", model_name, " - ", e$message)
+      return(NULL)
+    })
+    
+    eq_results <- tryCatch({
+      compare_results(Fitted_EQ_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
+    }, error = function(e) {
+      message("⚠️ EQ compare_results failed for: ", model_name, " - ", e$message)
+      return(NULL)
+    })
+    
+    # Make sure both are data.frames and have same columns
+    if (!is.null(fx_results) && is.data.frame(fx_results)) {
+      Fitted_TS_CV_models <- bind_rows(Fitted_TS_CV_models, fx_results)
+    }
+    
+    if (!is.null(eq_results) && is.data.frame(eq_results)) {
+      Fitted_TS_CV_models <- bind_rows(Fitted_TS_CV_models, eq_results)
+    }
   }
+  
 
 #### Forecast Financial Data ####
   
@@ -246,28 +363,7 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
 
 ####  Helpers for the Evaluation of Forecasted Financial Data ####
 
-# Helper to evaluate results across the 65/35 chronological split
-  
-  compare_results <- function(results_list, model_name, is_cv = FALSE) 
-  {
-    All_Results_Chrono_Split <- data.frame()
-    
-    for (asset in names(results_list)) {
-      result <- results_list[[asset]]
-      if (!is.null(result)) {
-        result$Asset <- asset
-        result$Model <- model_name
-        
-        if (is_cv && !"WindowStart" %in% names(result)) {
-          result$WindowStart <- NA  # pad if needed for uniformity
-        }
-        
-        All_Results_Chrono_Split <- rbind(All_Results_Chrono_Split, result)
-      }
-    }
-    
-    return(All_Results_Chrono_Split)
-  }
+
   
 # Helper to evaluate results across each TS CV Window
   evaluate_model <- function(fit, forecast, actual_returns) 
