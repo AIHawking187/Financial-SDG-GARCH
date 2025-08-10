@@ -1,19 +1,5 @@
 #Reminder to Set your Working Directory
-
-#### Install Packages ####
-# Uncomment below if running for the first time
-# install.packages(c("tidyverse", "rugarch", "quantmod", "xts", "PerformanceAnalytics", "FinTS", "openxlsx"))
-# install.packages("tidyr")
-# install.packages("dplyr")
-# install.packages("quantmod")
-# install.packages("tseries")
-# install.packages("rugarch")
-# install.packages("xts")
-# install.packages("PerformanceAnalytics")
-# install.packages("stringr")
-# install.packages("FinTS")
-# install.packages("openxlsx")
-
+set.seed(123)
 # Libraries
 library(openxlsx)
 library(quantmod)
@@ -25,49 +11,63 @@ library(FinTS)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(ggplot2)
 
-#### Import the Equity data ####
 
-# Main Tickers
-  equity_tickers <- c("NVDA", "AAPL", "AMZN", "DJT", "TSLA", "MLGO")
-  fx_names <- c("EURUSD", "GBPUSD", "GBPCNY","USDZAR", "GBPZAR", "EURZAR")
-  
-# Pull the Equity data
-  equity_data <- lapply(equity_tickers, function(ticker) 
-      {
-      quantmod::getSymbols(ticker, from = "2000-01-04", to = "2024-08-30", auto.assign = FALSE)[, 6]
-      }
-    )
-  
-  names(equity_data) <- equity_tickers
+#### Import the FX + EQ price data ####
 
-#### Import the FX data ####
+# Read CSV with Date in first column (row names)
 
-FX_data <- read.csv(file = "./data/raw/raw.csv") %>% 
-  dplyr::mutate(
-    Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
-    Date = lubridate::ymd(Date)  # Convert strings to Date objects
-                ) 
+raw_price_data <- read.csv("./data/processed/raw (FX + EQ).csv", row.names = 1)
 
-#### Clean the FX data####
+# Convert row names into a Date column
 
-fx_data <- lapply(fx_names, function(name) 
-    {
-    xts(FX_data[[name]], order.by = FX_data$Date)
-    }
-  )
+raw_price_data$Date <- lubridate::ymd(rownames(raw_price_data))
+rownames(raw_price_data) <- NULL
 
-names(fx_data) <- fx_names
+# Move Date to the front
 
-#### Calculate Returns on Equity data ####
+raw_price_data <- raw_price_data %>% dplyr::select(Date, everything())
 
-equity_returns <- lapply(equity_data, function(x) CalculateReturns(x)[-1, ])
 
-#### Calculate Returns on FX data ####
+#### Clean the Price data####
 
-# Convert FX series to xts objects
+# Extract date vector
 
-fx_returns <- lapply(fx_data, function(x) diff(log(x))[-1, ])
+date_index <- raw_price_data$Date
+
+# Remove date column from data matrix
+
+price_data_matrix <- raw_price_data[, !(names(raw_price_data) %in% "Date")]
+
+# Define equity and FX tickers (ensure they match column names exactly)
+
+equity_tickers <- c("NVDA", "MSFT", "PG", "CAT", "WMT", "AMZN")
+fx_names <- c("EURUSD", "GBPUSD", "GBPCNY", "USDZAR", "GBPZAR", "EURZAR")
+
+# Split into equity and FX price matrices
+
+equity_xts <- lapply(equity_tickers, function(ticker)
+{
+  xts(price_data_matrix[[ticker]], order.by = date_index)
+})
+
+names(equity_xts) <- equity_tickers
+
+fx_xts <- lapply(fx_names, function(ticker) 
+{
+  xts(price_data_matrix[[ticker]], order.by = date_index)
+})
+
+names(fx_xts) <- fx_names
+
+
+#### Calculate Returns on FX and Equity data ####
+
+# Calculate returns
+
+equity_returns <- lapply(equity_xts, function(x) CalculateReturns(x)[-1, ])
+fx_returns     <- lapply(fx_xts,     function(x) diff(log(x))[-1, ])
 
 #### Plotting returns data ####
 
@@ -149,19 +149,134 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
       train_set <- returns[start_idx:(start_idx + window_size - 1)]
       test_set  <- returns[(start_idx + window_size):(start_idx + window_size + forecast_horizon - 1)]
       
+      # 🔍 Print diagnostics before fitting
+      message("📦 Start index: ", start_idx, 
+              " | Train size: ", nrow(train_set), 
+              " | Test size: ", nrow(test_set),
+              " | Train SD: ", round(sd(train_set, na.rm = TRUE), 6))
+      
       spec <- generate_spec(model_type, dist_type, submodel)
       
-      try({
-        fit <- ugarchfit(data = train_set, spec = spec, solver = "hybrid")
-        forecast <- ugarchforecast(fit, n.ahead = forecast_horizon)
-        eval <- evaluate_model(fit, forecast, test_set)
-        eval$WindowStart <- index(train_set[1])
-        results[[length(results) + 1]] <- eval
-      }, silent = TRUE)
+      # 🔒 Try fitting GARCH model
+      fit <- tryCatch({
+        ugarchfit(data = train_set, spec = spec, solver = "hybrid")
+      }, error = function(e) {
+        message("❌ Fit error at index ", start_idx, ": ", e$message)
+        return(NULL)
+      })
+      
+      if (!is.null(fit)) {
+        forecast <- tryCatch({
+          ugarchforecast(fit, n.ahead = forecast_horizon)
+        }, error = function(e) {
+          message("❌ Forecast error at index ", start_idx, ": ", e$message)
+          return(NULL)
+        })
+        
+        if (!is.null(forecast)) {
+          eval <- tryCatch({
+            evaluate_model(fit, forecast, test_set)
+          }, error = function(e) {
+            message("❌ Evaluation error at index ", start_idx, ": ", e$message)
+            return(NULL)
+          })
+          
+          if (!is.null(eval)) {
+            eval$WindowStart <- index(train_set[1])
+            results[[length(results) + 1]] <- eval
+          }
+        }
+      }
     }
     
-    if (length(results) == 0) return(NULL)
-    do.call(rbind, results)
+    if (length(results) == 0) {
+      message("⚠️ No successful CV results for this series.")
+      return(NULL)
+    }
+    
+    return(results)
+  }
+
+# Helper function to extract the best fit from each CV using criteria like:
+  # Lowest AIC / BIC
+  # 
+  # Highest log-likelihood
+  # 
+  # Lowest forecast MSE / MAE (from evaluate_model)
+  
+  extract_best_fit <- function(cv_result, metric = "MSE..Forecast.vs.Actual.", minimize = TRUE) 
+  {
+    if (is.null(cv_result) || length(cv_result) == 0) return(NULL)
+    
+    metric_vals <- sapply(cv_result, function(x) {
+      if (!is.null(x[[metric]])) return(x[[metric]])
+      else return(NA)
+    })
+    
+    if (all(is.na(metric_vals))) return(NULL)
+    
+    best_index <- if (minimize) which.min(metric_vals) else which.max(metric_vals)
+    return(cv_result[[best_index]]$fit_object[[1]])
+  }
+  
+# Helper to evaluate results across each TS CV Window
+  evaluate_model <- function(fit, forecast, actual_returns) 
+  {
+    actual <- tail(actual_returns, 40)
+    pred   <- fitted(forecast)
+    
+    # Ensure same length
+    actual <- actual[1:min(nrow(actual), nrow(pred))]
+    pred   <- pred[1:min(nrow(actual), nrow(pred))]
+    
+    mse <- mean((actual - pred)^2, na.rm = TRUE)
+    mae <- mean(abs(actual - pred), na.rm = TRUE)
+    
+    q_stat_p <- tryCatch(Box.test(residuals(fit), lag = 10, type = "Ljung-Box")$p.value, error = function(e) NA)
+    arch_p   <- tryCatch(ArchTest(residuals(fit), lags = 10)$p.value, error = function(e) NA)
+    
+    return(data.frame
+           (
+             AIC = infocriteria(fit)[1],
+             BIC = infocriteria(fit)[2],
+             LogLikelihood = likelihood(fit),
+             `MSE (Forecast vs Actual)` = mse,
+             `MAE (Forecast vs Actual)` = mae,
+             `Q-Stat (p>0.05)` = q_stat_p,
+             `ARCH LM (p>0.05)` = arch_p
+           ))
+  } 
+  
+# Helper to evaluate results across the 65/35 chronological split
+  
+  compare_results <- function(cv_result_list, model_name, is_cv = FALSE) {
+    if (length(cv_result_list) == 0) return(NULL)
+    
+    all_rows <- list()
+    
+    for (asset_name in names(cv_result_list)) {
+      asset_result <- cv_result_list[[asset_name]]
+      
+      for (window_eval in asset_result) {
+        # Ensure it's a data frame
+        if (!is.null(window_eval) && is.data.frame(window_eval)) {
+          # Add metadata
+          window_eval$Asset <- asset_name
+          window_eval$Model <- model_name
+          window_eval$Type  <- ifelse(is_cv, "CV", "Chrono")
+          
+          all_rows[[length(all_rows) + 1]] <- window_eval
+        }
+      }
+    }
+    
+    if (length(all_rows) == 0) return(NULL)
+    
+    # Before binding, make sure all have the same columns
+    common_cols <- Reduce(intersect, lapply(all_rows, names))
+    all_rows <- lapply(all_rows, function(df) df[, common_cols, drop = FALSE])
+    
+    return(bind_rows(all_rows))
   }
   
 #### Train the GARCH Models using Chrono split and TS CV Split ####
@@ -226,9 +341,28 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   Fitted_TS_CV_models <- data.frame()
   
   for (model_name in names(Fitted_FX_TS_CV_models)) {
-    fx_results <- compare_results(Fitted_FX_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
-    eq_results <- compare_results(Fitted_EQ_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
-    Fitted_TS_CV_models <- rbind(Fitted_TS_CV_models, fx_results, eq_results)
+    fx_results <- tryCatch({
+      compare_results(Fitted_FX_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
+    }, error = function(e) {
+      message("⚠️ FX compare_results failed for: ", model_name, " - ", e$message)
+      return(NULL)
+    })
+    
+    eq_results <- tryCatch({
+      compare_results(Fitted_EQ_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
+    }, error = function(e) {
+      message("⚠️ EQ compare_results failed for: ", model_name, " - ", e$message)
+      return(NULL)
+    })
+    
+    # Make sure both are data.frames and have same columns
+    if (!is.null(fx_results) && is.data.frame(fx_results)) {
+      Fitted_TS_CV_models <- bind_rows(Fitted_TS_CV_models, fx_results)
+    }
+    
+    if (!is.null(eq_results) && is.data.frame(eq_results)) {
+      Fitted_TS_CV_models <- bind_rows(Fitted_TS_CV_models, eq_results)
+    }
   }
 
 #### Generate Synthetic Financial Data ####
@@ -258,6 +392,36 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
     }
   }
   
+# Helper to Generate Synthetic Financial Data from respective GARCH model trained under TS CV Split 
+  
+  simulate_from_best_cv_fits <- function(ts_cv_models, asset_returns, metric = "MSE..Forecast.vs.Actual.", n.sim = NULL)
+  {
+    synthetic_ts_cv_returns <- list()
+    
+    for (model_name in names(ts_cv_models)) {
+      model_assets <- ts_cv_models[[model_name]]
+      
+      for (asset_name in names(model_assets)) {
+        cv_result <- model_assets[[asset_name]]
+        fit <- extract_best_fit(cv_result, metric = metric, minimize = TRUE)
+        
+        if (!is.null(fit)) {
+          len <- ifelse(is.null(n.sim), nrow(asset_returns[[asset_name]]), n.sim)
+          sim <- simulate_from_garch(fit, n.sim = len)
+          synthetic_ts_cv_returns[[paste0(asset_name, "_", model_name)]] <- xts(sim, order.by = index(asset_returns[[asset_name]]))
+        }
+      }
+    }
+    
+    return(synthetic_ts_cv_returns)
+  }
+  
+  
+# Generate Synthetic Financial Data from respective GARCH model trained under TS CV Split 
+  
+  Synthetic_Returns_TS_CV <- simulate_from_best_cv_fits(Fitted_FX_TS_CV_models, fx_returns, metric = "MSE..Forecast.vs.Actual.")
+  
+
 # Helper to Split Synthetic Financial Data to create a 65/35 Chrono Split to train a new model 
   
   split_Synthetic_Returns_Chrono_Split <- function(syn_returns_list, split_ratio = 0.65) 
@@ -365,15 +529,46 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
 # Train more GARCH models under TS CV Data splitting using the Synthetic data generated under the 65/35 Chrono Split
   
   Fitted_TS_CV_Synth_Chrono_Split_Model <- run_all_cv_models(Synthetic_Returns_Chrono_Split_xts, model_configs)
+ 
+# Helper to rank results of forecasted financial data
   
+  rank_models <- function(results_df, label = NULL) 
+  {
+    results_df %>%
+      group_by(Model) %>%
+      summarise(
+        Avg_AIC      = mean(AIC, na.rm = TRUE),
+        Avg_BIC      = mean(BIC, na.rm = TRUE),
+        Avg_LL       = mean(LogLikelihood, na.rm = TRUE),
+        Avg_MSE      = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+        Avg_MAE      = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
+        Mean_Q_Stat  = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
+        Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE),
+        .groups = 'drop'
+      ) %>%
+      arrange(Avg_MSE) %>%
+      mutate(Source = label)
+  }  
+    
 # Evaluate the results of the GARCH models under TS CV Data splitting using the Synthetic data generated under the 65/35 Chrono Split
   synth_cv_results <- data.frame()
   
   for (model_name in names(Fitted_TS_CV_Synth_Chrono_Split_Model)) {
-    res <- compare_results(Fitted_TS_CV_Synth_Chrono_Split_Model[[model_name]], model_name, is_cv = TRUE)
-    res$Source <- "Synthetic_CV"
-    synth_cv_results <- rbind(synth_cv_results, res)
+    res <- tryCatch({
+      compare_results(Fitted_TS_CV_Synth_Chrono_Split_Model[[model_name]], model_name, is_cv = TRUE)
+    }, error = function(e) {
+      message("⚠️ compare_results failed for: ", model_name, " - ", e$message)
+      return(NULL)
+    })
+    
+    if (!is.null(res) && is.data.frame(res)) {
+      if (!"Source" %in% names(res)) {
+        res$Source <- "Synthetic_CV"
+      }
+      synth_cv_results <- rbind(synth_cv_results, res)
+    }
   }
+  
   
 # Consolidate the results of evaluating the Synthetic data generated under the 65/35 Chrono Split and save the Synthetic returns
   
@@ -406,6 +601,14 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
     }
   }
   
+  for (name in names(Synthetic_Returns_TS_CV)) 
+  {
+    write.csv(data.frame(SimulatedReturns = Synthetic_Returns_TS_CV[[name]]),
+              file = paste0("results/tables/synthetic/TS_CV_", name, "_sim.csv"),
+              row.names = FALSE)
+  }
+  
+  
 # Helper to rank the results of models in generating synthetic data
   
   simulation_ranking <- simulation_results %>%
@@ -423,7 +626,7 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   ranking_synth_chrono <- rank_models(synth_chrono_results, "Synthetic_Chrono")
   ranking_synth_cv     <- rank_models(synth_cv_results, "Synthetic_CV")
   
-  ranking_all_combined <- bind_rows(ranking_chrono, ranking_cv, ranking_synth_chrono, ranking_synth_cv)
+  ranking_all_combined <- bind_rows( ranking_synth_chrono, ranking_synth_cv)
   
 # Summarise the results of forecasted data generated by Chrono split and TS CV models trained using the synthetic data generated under Chrono Split 
   
@@ -497,7 +700,7 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
       # Align length with original returns
       full_length <- length(return_list[[asset_name]])
       n <- min(length(resid_vec), full_length)
-      # resid_num <- rep(NA, full_length)
+      resid_num <- rep(NA, full_length)
       resid_num[1:n] <- as.numeric(resid_vec)[1:n]
       
       # Wrap in a data frame with column name
@@ -614,8 +817,23 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   nf_results_df <- do.call(rbind, nf_results)
   nf_results_df$Source <- "NF"
   
+  
+# Combine FX and equity chrono split into one list
+  
+  split_fx <- split_Synthetic_Returns_Chrono_Split(fx_returns)
+  split_eq <- split_Synthetic_Returns_Chrono_Split(equity_returns)
+  
+  list_of_train_test_returns <- c(
+    lapply(names(fx_returns), function(n) list(train = fx_train_returns[[n]], test = fx_test_returns[[n]])),
+    lapply(names(equity_returns), function(n) list(train = equity_train_returns[[n]], test = equity_test_returns[[n]]))
+  )
+  
+  names(list_of_train_test_returns) <- c(names(fx_returns), names(equity_returns))
+  
+  
 # Combine & Rank All Models Including NF
   
+  All_Results_Chrono_Split <- evaluate_synth_chrono(Fitted_Chrono_Split_models, list_of_train_test_returns)
   All_Results_Chrono_Split$Source <- "Standard"
   combined_eval <- dplyr::bind_rows(All_Results_Chrono_Split, nf_results_df)
   
@@ -660,14 +878,10 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   addWorksheet(wb, "CV_Results")
   writeData(wb, "CV_Results", Fitted_TS_CV_models)
   
-  addWorksheet(wb, "CV_Asset_Model_Summary")
-  writeData(wb, "CV_Asset_Model_Summary", cv_asset_model_summary)
   
   addWorksheet(wb, "CV_Results_All")
   writeData(wb, "CV_Results_All", Fitted_TS_CV_models)
   
-  addWorksheet(wb, "Model_Ranking_All")
-  writeData(wb, "Model_Ranking_All", ranking_combined)
   
   addWorksheet(wb, "Synthetic_Chrono_Eval")
   writeData(wb, "Synthetic_Chrono_Eval", synth_chrono_results)
@@ -691,6 +905,7 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   writeData(wb, "NF_GARCH_Eval", nf_results_df)
   
   saveWorkbook(wb, "GARCH_Model_Evaluation_Summary.xlsx", overwrite = TRUE)
+  
   
   
   
