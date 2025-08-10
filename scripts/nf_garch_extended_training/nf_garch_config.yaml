@@ -1,0 +1,84 @@
+# === General Experiment Config ===
+experiment_name: "nf_garch_experiment_01"
+save_dir: "./results/nf_garch_runs"
+random_seed: 123
+
+# === Residual Training Settings ===
+residual_training:
+  standardize_residuals: true            # Apply z-score normalization before NF training
+  input_features:                        # Features to condition NF on (optional)
+    - lag_1_return
+    - rolling_volatility_5
+  windowed_training:                     # Use sliding window over residuals?
+    use: true
+    window_size: 1000
+    step_size: 200
+
+# === Normalizing Flow Model ===
+nf_model:
+  type: "RealNVP"                        # Options: RealNVP, NSF, FlowPP, MAF, IAF
+  num_layers: 5
+  hidden_units: 128
+  use_dropout: true
+  dropout_rate: 0.1
+  use_batchnorm: true
+  learning_rate: 0.0005
+  epochs: 1000
+  early_stopping_patience: 20
+  lr_scheduler: "ReduceLROnPlateau"
+
+# === Residual Injection Strategy ===
+residual_injection:
+  method: "full"                         # Options: full, hybrid_mix
+  hybrid_mix_alpha: 0.7                 # Only used if method == hybrid_mix
+  enforce_zero_mean: true
+  enforce_unit_variance: true
+
+# === GARCH Model Specification ===
+garch_spec:
+  arma_order: [0, 0]
+  garch_order: [1, 1]
+  models:                                # List of GARCH variants to evaluate
+    - sGARCH
+    - eGARCH
+    - gjrGARCH
+    - TGARCH
+  distribution: sstd
+
+# === Evaluation Metrics ===
+evaluation:
+  forecast_horizon: 40
+  split_type: both                       # Options: chrono, cv, both
+  cv_window_size: 500
+  cv_step_size: 50
+  metrics:
+    - MSE
+    - MAE
+    - LogLikelihood
+    - AIC
+    - BIC
+    - KS_test
+    - Wasserstein
+    - QQ_plot
+    - Diebold_Mariano
+    - CRPS
+    - VaR_backtest
+  use_wilcoxon: true
+  use_diebold_mariano: true
+
+# === Simulation Settings ===
+simulation:
+  num_simulations: 1
+  seed: 42
+  plot_return_distributions: true
+  plot_residual_distributions: true
+
+# === Output ===
+output:
+  write_to_excel: true
+  generate_rankings: true
+  plots:
+    real_vs_nf_returns: true
+    real_vs_nf_residuals: true
+    QQ_plots: true
+    KS_plots: false
