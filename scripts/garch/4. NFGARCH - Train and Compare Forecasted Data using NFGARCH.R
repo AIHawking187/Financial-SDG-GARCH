@@ -411,12 +411,14 @@ for (f in nf_files) {
 
 fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
   tryCatch({
+    # Validate distribution input
     if (is.null(model_config$distribution) || !is.character(model_config$distribution)) {
       stop("Distribution must be a non-null character string.")
     }
     
+    # Define GARCH spec
     spec <- ugarchspec(
-      mean.model     = list(armaOrder = c(0, 0)),
+      mean.model = list(armaOrder = c(0, 0)),
       variance.model = list(
         model = model_config$model,
         garchOrder = c(1, 1),
@@ -425,49 +427,27 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
       distribution.model = model_config$distribution
     )
     
+    # Fit GARCH
     fit <- ugarchfit(spec = spec, data = asset_returns)
-    # Extract and order the fitted parameters manually
-    # Extract default param vector from spec (in correct order)
-    ordered_pars <- coef(spec)
     
-    # Overwrite the ones you estimated (from ugarchfit)
-    fitted_pars <- coef(fit)
+    # Create correctly ordered parameter vector
+    ordered_pars <- coef(spec)  # defaults from spec
+    fitted_pars <- coef(fit)    # estimated values
+    ordered_pars[names(fitted_pars)] <- fitted_pars  # overwrite fitted
     
-    # Fill in any matching fitted values
-    for (param_name in names(fitted_pars)) {
-      if (param_name %in% names(ordered_pars)) {
-        ordered_pars[param_name] <- fitted_pars[param_name]
-      }
-    }
+    # Ensure named numeric vector (not list)
+    ordered_pars <- as.numeric(ordered_pars)
+    names(ordered_pars) <- names(coef(spec))
     
-    print("ordered_pars:")
-    print(ordered_pars)
-    print("Class:")
-    print(class(ordered_pars))
-    print("Names:")
-    print(names(ordered_pars))
-    
-    
-    
-    # === FIX: define n_sim BEFORE using it
+    # Setup simulation
     n_sim <- floor(length(asset_returns) / 2)
-    prereturns_val <- tail(fitted(fit), 1)
-    if (is.na(prereturns_val)) {
-      prereturns_val <- mean(asset_returns, na.rm = TRUE)
-    }
-    
     if (length(nf_resid) < n_sim) {
       warning(paste("⚠️ NF residuals too short for", asset_name, "-", model_config$model))
       return(NULL)
     }
     
-    print("=== Debug Info ===")
-    print(paste("presigma =", tail(sigma(fit), 1)))
-    print(paste("preresiduals =", tail(residuals(fit), 1)))
-    print(paste("prereturns =", tail(fitted(fit), 1)))
-    print(paste("innovations (head) =", head(nf_resid, 5)))
-    print(paste("ordered_pars =", paste(ordered_pars, collapse = ", ")))
-    print(paste("n_sim =", n_sim))
+    prereturns_val <- tail(fitted(fit), 1)
+    if (is.na(prereturns_val)) prereturns_val <- mean(asset_returns, na.rm = TRUE)
     
     sim <- ugarchpath(
       spec,

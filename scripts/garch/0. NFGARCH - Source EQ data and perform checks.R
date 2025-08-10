@@ -126,6 +126,7 @@ combined_df <- na.omit(combined_df)
 equity_data_clean <- as.list(combined_df[, equity_tickers])
 fx_data_clean     <- as.list(combined_df[, fx_names])
 
+
 # Step 56: Export to Processed folder
 write.csv(as.data.frame(combined_df), "./data/processed/raw (FX + EQ).csv")
 
