@@ -16,11 +16,14 @@ This repository implements a comprehensive framework for generating synthetic fi
 
 ### Core Technologies
 - **R**: Primary programming language for statistical modeling
+- **Python**: Advanced NF implementation and deep learning
 - **rugarch**: GARCH model implementation and estimation
 - **quantmod**: Financial data retrieval and manipulation
 - **xts**: Time series data handling
 - **PerformanceAnalytics**: Financial performance metrics
 - **ggplot2**: Data visualization
+- **PyTorch/TensorFlow**: Deep learning frameworks for NF models
+- **RealNVP/NSF**: Normalizing Flow architectures
 
 ### GARCH Models Implemented
 1. **sGARCH** (Standard GARCH): Basic GARCH(1,1) with normal and skewed-t distributions
@@ -38,24 +41,48 @@ This repository implements a comprehensive framework for generating synthetic fi
 Financial-SDG-GARCH/
 ├── data/
 │   └── processed/
-│       └── raw (FX + EQ).csv          # Consolidated price data
-├── scripts/garch/
-│   ├── 0. NFGARCH - Source EQ data and perform checks.R    # Data sourcing and quality checks
-│   ├── 1. NFGARCH - Train and Compare Forecasted Data.R    # Real data forecasting
-│   ├── 2. NFGARCH - Train and Compare Synthetic Data.R     # Synthetic data generation
-│   └── GARCH Comparison Scripts/
-│       ├── Exhaustive GARCH Comparison.R                   # Comprehensive model comparison
-│       └── Simplified GARCH Comparison.R                   # Streamlined comparison
+│       └── raw (FX + EQ).csv          # Consolidated price data (2005-2024)
+├── scripts/
+│   ├── garch/                         # Original GARCH implementation
+│   │   ├── 0. NFGARCH - Source EQ data and perform checks.R
+│   │   ├── 1. NFGARCH - Train and Compare Forecasted Data.R
+│   │   ├── 2. NFGARCH - Train and Compare Synthetic Data.R
+│   │   └── GARCH Comparison Scripts/
+│   │       ├── Exhaustive GARCH Comparison.R
+│   │       └── Simplified GARCH Comparison.R
+│   ├── R - NFGARCH Main Training/     # Enhanced R implementation
+│   │   ├── 0-5. NFGARCH scripts (enhanced versions)
+│   │   └── GARCH Comparison Scripts/
+│   ├── Python - NF Main Training/     # Python NF implementation
+│   │   └── NFGARCH - Train all Residuals.ipynb
+│   └── Python - NF Extended Training/ # Advanced Python NF framework
+│       ├── main.py                    # Main execution script
+│       ├── train_nf.py                # NF training utilities
+│       ├── nf_garch_config.yaml       # Configuration file
+│       └── utils/
+│           ├── data_utils.py          # Data loading utilities
+│           ├── flow_utils.py          # NF model utilities
+│           └── garch_utils.py         # GARCH integration utilities
 ├── results/
-│   ├── plots/                          # Generated visualizations
-│   │   ├── exhaustive/                 # Comprehensive analysis plots
-│   │   ├── equity_[model]/             # Equity-specific results
-│   │   └── fx_[model]/                 # FX-specific results
+│   ├── plots/                         # Generated visualizations
+│   │   ├── exhaustive/                # Comprehensive analysis plots
+│   │   ├── equity_[model]/            # Equity-specific results
+│   │   └── fx_[model]/                # FX-specific results
 │   └── tables/
-│       └── garch_comparison.csv        # Model performance metrics
-├── residuals_by_model/                 # Model residuals by GARCH variant
-├── nf_generated_residuals/             # Synthetic residuals and data
-└── GARCH_Model_Evaluation_Summary.xlsx # Excel summary of results
+│       └── garch_comparison.csv       # Model performance metrics
+├── residuals_by_model/                # Model residuals by GARCH variant
+│   ├── sGARCH_norm/                   # Standard GARCH with normal distribution
+│   ├── sGARCH_sstd/                   # Standard GARCH with skewed-t distribution
+│   ├── eGARCH/                        # Exponential GARCH residuals
+│   ├── gjrGARCH/                      # GJR-GARCH residuals
+│   └── TGARCH/                        # Threshold GARCH residuals
+├── nf_generated_residuals/            # Synthetic residuals and data
+├── residuals_usdzar.csv               # USDZAR specific residuals
+├── usdzar_price_comparison.png        # Price comparison visualization
+├── GARCH_Model_Evaluation_Summary.xlsx # Excel summary of results
+├── Masters - NFGARCH.Rproj            # RStudio project file
+├── LICENSE                            # MIT License
+└── .gitignore                         # Git ignore patterns
 ```
 
 ## Key Components and Their Relationships
@@ -82,6 +109,12 @@ Financial-SDG-GARCH/
 - **Residual Simulation**: Generation of synthetic residuals from fitted models
 - **Volatility Reconstruction**: Back-transformation to price series
 - **Statistical Validation**: Comparison of real vs synthetic data properties
+
+### 5. Normalizing Flow Integration
+- **NF Model Training**: RealNVP, NSF, and other flow architectures
+- **Residual Learning**: NF models trained on GARCH residuals
+- **Hybrid Generation**: Combination of GARCH and NF approaches
+- **Advanced Evaluation**: Distribution distance metrics and statistical tests
 
 ## Development Guidelines and Conventions
 
@@ -116,6 +149,24 @@ ggplot2
 
 # File handling
 openxlsx
+```
+
+### Required Python Packages
+```python
+# Deep learning frameworks
+torch, tensorflow, numpy
+
+# Normalizing flows
+nflows, normflows, pytorch-flows
+
+# Data manipulation
+pandas, numpy, scipy
+
+# Visualization
+matplotlib, seaborn, plotly
+
+# Configuration
+pyyaml, argparse
 ```
 
 ### Data Requirements
