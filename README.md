@@ -35,9 +35,25 @@ Financial-SDG-GARCH/
 
 ### Prerequisites
 
-- R (>= 4.0.0) with packages: rugarch, xts, dplyr, ggplot2
+- R (>= 4.0.0) with packages: rugarch, xts, dplyr, ggplot2, quantmod, tseries, PerformanceAnalytics, FinTS, openxlsx, stringr, forecast, transport, fmsb, moments
 - Python (>= 3.8) with packages: numpy, pandas, torch, scikit-learn
 - Make (optional, for automated pipeline)
+
+### Troubleshooting
+
+If you encounter "R command not found" errors:
+
+**Windows:**
+```cmd
+scripts\utils\check_r_setup.bat
+```
+
+**Linux/macOS:**
+```bash
+Rscript scripts/utils/setup_r_environment.R
+```
+
+For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ### Installation
 

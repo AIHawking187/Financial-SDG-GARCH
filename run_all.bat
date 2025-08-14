@@ -21,8 +21,23 @@ if not exist "outputs\supplementary" mkdir outputs\supplementary
 echo Installing Python dependencies...
 pip install -r environment\requirements.txt
 
+echo Checking R environment...
+Rscript --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: Rscript not found in PATH
+    echo Please run: scripts\utils\check_r_setup.bat
+    pause
+    exit /b 1
+)
+
 echo Generating session info files...
 Rscript -e "writeLines(capture.output(sessionInfo()), 'environment/R_sessionInfo.txt')"
+if %errorlevel% neq 0 (
+    echo ERROR: Failed to generate R session info
+    echo Please check R installation and run: scripts\utils\check_r_setup.bat
+    pause
+    exit /b 1
+)
 pip freeze > environment\pip_freeze.txt
 
 echo Setup complete!

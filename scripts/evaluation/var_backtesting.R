@@ -104,10 +104,10 @@ calculate_garch_var <- function(returns, model_spec, confidence_level) {
     if (fit@model$modeldesc$distribution == "norm") {
       z_score <- qnorm(1 - confidence_level)
     } else if (fit@model$modeldesc$distribution == "sstd") {
-      z_score <- qsstd(1 - confidence_level, 
-                      mu = 0, sigma = 1, 
-                      skew = coef(fit)["skew"], 
-                      shape = coef(fit)["shape"])
+      z_score <- rugarch::qdist("sstd", 1 - confidence_level, 
+                               mu = 0, sigma = 1, 
+                               skew = coef(fit)["skew"], 
+                               shape = coef(fit)["shape"])
     } else {
       z_score <- qnorm(1 - confidence_level)  # fallback to normal
     }
@@ -497,3 +497,4 @@ cat("\nOutput files saved to:", output_dir, "\n")
 cat("Summary tables saved to:", output_table_dir, "\n")
 
 cat("\nVaR backtesting analysis complete!\n")
+

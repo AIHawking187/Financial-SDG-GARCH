@@ -26,6 +26,9 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 
+# Source utility functions
+source("./scripts/utils/safety_functions.R")
+
 #### Import the Equity data ####
 
 # Main Tickers
@@ -77,7 +80,7 @@ library(stringr)
 
 #### Import the FX data ####
 
-FX_data <- read.csv(file = "./data/raw/raw.csv") %>% 
+FX_data <- read.csv(file = "./data/raw/raw (FX).csv") %>% 
   dplyr::mutate(
     Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
     Date = lubridate::ymd(Date)  # Convert strings to Date objects
@@ -394,7 +397,7 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
 # Consolidate and compare the results of the Chrono split and TS CV split 
 ranking_chrono <- rank_models(All_Results_Chrono_Split, "Chrono_Split")
 ranking_cv     <- rank_models(Fitted_TS_CV_models, "TS_CV")
-ranking_combined <- bind_rows(ranking_chrono, ranking_cv)
+ranking_combined <- add_row_safe(ranking_chrono, ranking_cv)
 
 
 # Plot results of forecasted financial data
@@ -608,7 +611,7 @@ simulation_ranking <- simulation_results %>%
 ranking_synth_chrono <- rank_models(synth_chrono_results, "Synthetic_Chrono")
 ranking_synth_cv     <- rank_models(synth_cv_results, "Synthetic_CV")
 
-ranking_all_combined <- bind_rows(ranking_chrono, ranking_cv, ranking_synth_chrono, ranking_synth_cv)
+ranking_all_combined <- Reduce(add_row_safe, list(ranking_chrono, ranking_cv, ranking_synth_chrono, ranking_synth_cv), init = data.frame())
 
 synth_cv_asset_summary <- synth_cv_results %>%
   group_by(Model, Asset) %>%
@@ -803,7 +806,7 @@ nf_results_df$Source <- "NF"
 # Combine & Rank All Models Including NF
 
 All_Results_Chrono_Split$Source <- "Standard"
-combined_eval <- dplyr::bind_rows(All_Results_Chrono_Split, nf_results_df)
+combined_eval <- add_row_safe(All_Results_Chrono_Split, nf_results_df)
 
 combined_ranking <- combined_eval %>%
   dplyr::group_by(Source, Model) %>%

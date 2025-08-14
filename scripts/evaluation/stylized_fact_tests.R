@@ -426,3 +426,4 @@ cat("\nOutput files saved to:", output_dir, "\n")
 cat("Summary tables saved to:", output_table_dir, "\n")
 
 cat("\nStylized fact tests complete!\n")
+

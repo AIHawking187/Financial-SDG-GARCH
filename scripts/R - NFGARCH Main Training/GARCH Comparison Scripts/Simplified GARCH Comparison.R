@@ -47,7 +47,7 @@ names(equity_data) <- equity_tickers
 
 #### Import FX data ####
 
-FX_data <- read.csv(file = "./data/raw/raw.csv") %>% 
+FX_data <- read.csv(file = "./data/raw/raw (FX).csv") %>% 
   dplyr::mutate(
     Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
     Date = lubridate::ymd(Date)  # Convert strings to Date objects

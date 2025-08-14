@@ -11,6 +11,9 @@ library(FinTS)
 library(dplyr)
 library(tidyr)
 library(stringr)
+
+# Source utility functions
+source("./scripts/utils/safety_functions.R")
 library(ggplot2)
 
 
@@ -355,14 +358,9 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
       return(NULL)
     })
     
-    # Make sure both are data.frames and have same columns
-    if (!is.null(fx_results) && is.data.frame(fx_results)) {
-      Fitted_TS_CV_models <- bind_rows(Fitted_TS_CV_models, fx_results)
-    }
-    
-    if (!is.null(eq_results) && is.data.frame(eq_results)) {
-      Fitted_TS_CV_models <- bind_rows(Fitted_TS_CV_models, eq_results)
-    }
+      # Use add_row_safe to prevent crashes when models return no rows
+  Fitted_TS_CV_models <- add_row_safe(Fitted_TS_CV_models, fx_results)
+  Fitted_TS_CV_models <- add_row_safe(Fitted_TS_CV_models, eq_results)
   }
 
 #### Generate Synthetic Financial Data ####

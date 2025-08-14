@@ -218,6 +218,38 @@ pyyaml, argparse
 - **Variable Naming**: Descriptive names following R conventions
 - **Comment Standards**: Inline comments for complex logic
 
+### File Path Conventions
+- **FX Data File**: Always use `"./data/raw/raw (FX).csv"` (with space and parentheses)
+- **Consolidated Data**: Use `"./data/processed/raw (FX + EQ).csv"` for combined datasets
+- **Path Validation**: Verify file paths exist before running scripts to avoid "No such file or directory" errors
+
+### Robust Distribution Functions
+- **Use `rugarch::qdist("sstd", ...)` instead of `qsstd(...)`**: Ensures consistent parameter handling
+- **Use `rugarch::ddist("sstd", ...)` for density functions**: Robust density calculation
+- **Use `rugarch::pdist("sstd", ...)` for CDF functions**: Reliable cumulative distribution
+- **Use `rugarch::rdist("sstd", ...)` for random generation**: Safe random number generation
+- **Fallback to normal distribution**: If sstd functions fail, automatically fall back to normal
+
+### Safety Functions
+- **`add_row_safe()`**: Prevents summary tables from crashing when models return no rows
+- **Usage**: `reduce(add_row_safe, init = data.frame(), list_of_dataframes)`
+- **Location**: `./scripts/utils/safety_functions.R`
+- **Source in scripts**: Add `source("./scripts/utils/safety_functions.R")` to library imports
+
+### R Installation and Path Configuration
+- **R Installation**: Ensure R (>= 4.0.0) is installed and accessible from command line
+- **Rscript Path**: Verify `Rscript` command is available in system PATH
+- **Windows**: Add R installation directory to PATH environment variable
+- **Linux/macOS**: Ensure R is installed via package manager or official installer
+- **Package Dependencies**: Install required R packages before running scripts:
+  ```r
+  install.packages(c("rugarch", "xts", "dplyr", "tidyr", "ggplot2", "quantmod", 
+                     "tseries", "PerformanceAnalytics", "FinTS", "openxlsx", 
+                     "stringr", "forecast", "transport", "fmsb", "moments"))
+  ```
+- **Troubleshooting**: If `Rscript` not found, check R installation and PATH configuration
+- **Alternative**: Use `R --slave -e "source('script.R')"` instead of `Rscript script.R`
+
 ### Version Control
 - **Atomic Commits**: Logical grouping of related changes
 - **Descriptive Messages**: Clear commit messages explaining changes

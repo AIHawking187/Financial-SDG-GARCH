@@ -281,3 +281,4 @@ cat("\n=== BEST MODEL PER ASSET ===\n")
 print(best_models_per_asset)
 
 cat("\nForecasting analysis complete!\n")
+

@@ -7,8 +7,10 @@ setup:
 	@mkdir -p data/raw data/processed/ts_cv_folds outputs/eda/{tables,figures} outputs/model_eval/{tables,figures} outputs/var_backtest/{tables,figures} outputs/stress_tests/{tables,figures} outputs/supplementary
 	@echo "Installing Python dependencies..."
 	@pip install -r environment/requirements.txt
+	@echo "Checking R environment..."
+	@which Rscript >/dev/null 2>&1 || (echo "WARNING: Rscript not found in PATH. Please run 'scripts/utils/check_r_setup.bat' (Windows) or ensure R is installed and in PATH." && exit 1)
 	@echo "Generating session info files..."
-	@Rscript -e "writeLines(capture.output(sessionInfo()), 'environment/R_sessionInfo.txt')"
+	@Rscript -e "writeLines(capture.output(sessionInfo()), 'environment/R_sessionInfo.txt')" || (echo "ERROR: Failed to generate R session info. Check R installation." && exit 1)
 	@pip freeze > environment/pip_freeze.txt
 	@echo "Setup complete!"
 
