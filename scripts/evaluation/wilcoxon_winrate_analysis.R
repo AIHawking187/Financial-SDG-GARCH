@@ -149,11 +149,11 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
 
 # List of Different model configurations
   model_configs <- list(
-                        sGARCH_norm  = list(model = "sGARCH", distribution = "norm", submodel = NULL),
-                        sGARCH_sstd  = list(model = "sGARCH", distribution = "sstd", submodel = NULL),
-                        gjrGARCH     = list(model = "gjrGARCH", distribution = "sstd", submodel = NULL),
-                        eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),
-                        TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")
+                        sGARCH_norm  = list(model = "sGARCH", dist = "norm", submodel = NULL),
+                        sGARCH_sstd  = list(model = "sGARCH", dist = "sstd", submodel = NULL),
+                        gjrGARCH     = list(model = "gjrGARCH", dist = "sstd", submodel = NULL),
+                        eGARCH       = list(model = "eGARCH", dist = "sstd", submodel = NULL),
+                        TGARCH       = list(model = "fGARCH", dist = "sstd", submodel = "TGARCH")
                         )  # Change the distributional assumptions of the ARCH and GARCH parameters here
 
 
@@ -188,13 +188,16 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
       
       spec <- generate_spec(model_type, dist_type, submodel)
       
-      try({
+      tryCatch({
         fit <- ugarchfit(data = train_set, spec = spec, solver = "hybrid")
         forecast <- ugarchforecast(fit, n.ahead = forecast_horizon)
         eval <- evaluate_model(fit, forecast, test_set)
         eval$WindowStart <- index(train_set[1])
         results[[length(results) + 1]] <- eval
-      }, silent = TRUE)
+      }, error = function(e) {
+        # Skip this window if fitting fails
+        NULL
+      })
     }
     
     if (length(results) == 0) return(NULL)
@@ -258,29 +261,6 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   Fitted_FX_TS_CV_models     <- run_all_cv_models(valid_fx_returns, model_configs)
   Fitted_EQ_TS_CV_models <- run_all_cv_models(valid_equity_returns, model_configs)
   
-# Flatten all CV results into one data frame
-  
-  Fitted_TS_CV_models <- data.frame()
-  
-  for (model_name in names(Fitted_FX_TS_CV_models)) {
-    fx_results <- compare_results(Fitted_FX_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
-    eq_results <- compare_results(Fitted_EQ_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
-    Fitted_TS_CV_models <- rbind(Fitted_TS_CV_models, fx_results, eq_results)
-  }
-
-#### Forecast Financial Data ####
-  
-# Helper to forecast financial returns data across each GARCH model for 40 days into the future
-
-  forecast_models <- function(fit_list, n.ahead = 40) {
-    lapply(fit_list, function(fit) ugarchforecast(fitORspec = fit, n.ahead = n.ahead))
-  }
-
-# Forecast financial data for models trained on 65/35 Chrono Split
-  Forecasts_Chrono_Split <- lapply(Fitted_Chrono_Split_models, forecast_models, n.ahead = 40)
-
-####  Helpers for the Evaluation of Forecasted Financial Data ####
-
 # Helper to evaluate results across the 65/35 chronological split
   
   compare_results <- function(results_list, model_name, is_cv = FALSE) 
@@ -303,6 +283,29 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
     
     return(All_Results_Chrono_Split)
   }
+
+# Flatten all CV results into one data frame
+  
+  Fitted_TS_CV_models <- data.frame()
+  
+  for (model_name in names(Fitted_FX_TS_CV_models)) {
+    fx_results <- compare_results(Fitted_FX_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
+    eq_results <- compare_results(Fitted_EQ_TS_CV_models[[model_name]], model_name, is_cv = TRUE)
+    Fitted_TS_CV_models <- rbind(Fitted_TS_CV_models, fx_results, eq_results)
+  }
+
+#### Forecast Financial Data ####
+  
+# Helper to forecast financial returns data across each GARCH model for 40 days into the future
+
+  forecast_models <- function(fit_list, n.ahead = 40) {
+    lapply(fit_list, function(fit) ugarchforecast(fitORspec = fit, n.ahead = n.ahead))
+  }
+
+# Forecast financial data for models trained on 65/35 Chrono Split
+  Forecasts_Chrono_Split <- lapply(Fitted_Chrono_Split_models, forecast_models, n.ahead = 40)
+
+####  Helpers for the Evaluation of Forecasted Financial Data ####
   
 # Helper to evaluate results across each TS CV Window
   evaluate_model <- function(fit, forecast, actual_returns) 
@@ -380,23 +383,32 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   names(All_Results_Chrono_Split)
 
 # Compare and rank the results from all CV models across window size of x and a forecast horizon of y
-  cv_asset_model_summary <- Fitted_TS_CV_models %>%
-    group_by(Model) %>%
-    summarise(
-      Avg_AIC  = mean(AIC, na.rm = TRUE),
-      Avg_BIC  = mean(BIC, na.rm = TRUE),
-      Avg_LL   = mean(LogLikelihood, na.rm = TRUE),
-      Avg_MSE  = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
-      Avg_MAE  = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
-      Mean_Q_Stat = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
-      Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE),
-      .groups = 'drop'
-    ) %>%
-    arrange(Avg_MSE)
+  if (nrow(Fitted_TS_CV_models) > 0 && "Model" %in% names(Fitted_TS_CV_models)) {
+    cv_asset_model_summary <- Fitted_TS_CV_models %>%
+      group_by(Model) %>%
+      summarise(
+        Avg_AIC  = mean(AIC, na.rm = TRUE),
+        Avg_BIC  = mean(BIC, na.rm = TRUE),
+        Avg_LL   = mean(LogLikelihood, na.rm = TRUE),
+        Avg_MSE  = mean(`MSE..Forecast.vs.Actual.`, na.rm = TRUE),
+        Avg_MAE  = mean(`MAE..Forecast.vs.Actual.`, na.rm = TRUE),
+        Mean_Q_Stat = mean(`Q.Stat..p.0.05.`, na.rm = TRUE),
+        Mean_ARCH_LM = mean(`ARCH.LM..p.0.05.`, na.rm = TRUE),
+        .groups = 'drop'
+      ) %>%
+      arrange(Avg_MSE)
+  } else {
+    cat("Warning: Fitted_TS_CV_models is empty or missing Model column\n")
+    cv_asset_model_summary <- data.frame()
+  }
 
 # Consolidate and compare the results of the Chrono split and TS CV split 
 ranking_chrono <- rank_models(All_Results_Chrono_Split, "Chrono_Split")
-ranking_cv     <- rank_models(Fitted_TS_CV_models, "TS_CV")
+ranking_cv     <- if (nrow(Fitted_TS_CV_models) > 0 && "Model" %in% names(Fitted_TS_CV_models)) {
+  rank_models(Fitted_TS_CV_models, "TS_CV")
+} else {
+  data.frame()  # Return empty dataframe if no valid data
+}
 ranking_combined <- add_row_safe(ranking_chrono, ranking_cv)
 
 
@@ -700,21 +712,58 @@ for (model_key in names(Fitted_Chrono_Split_models)) {
 # Load all synthetic residual files from Python
 nf_files <- list.files("nf_generated_residuals", pattern = "*.csv", full.names = TRUE)
 
-# Parse model and asset from file names
+# Robust key normalization function
+normalize_key <- function(s) {
+  s <- tolower(s)
+  s <- gsub("\\.csv$", "", s)
+  s <- gsub("[^a-z0-9_]+", "_", s)
+  s <- gsub("_+", "_", s)
+  s <- gsub("_residuals_synthetic(_residuals_synthetic)+", "_residuals_synthetic", s)
+  s
+}
+
+# Build nf_residuals_map with normalized keys
 nf_residuals_map <- list()
-for (f in nf_files) {
-  fname <- basename(f)
-  key <- stringr::str_replace(fname, "\\.csv$", "") #e.g., fx_USDZAR_eGARCH_sstd_synthetic.csv → key = fx_USDZAR_eGARCH_sstd
-  nf_residuals_map[[key]] <- read.csv(f)$residual
+if (length(nf_files) > 0) {
+  for (f in nf_files) {
+    raw_key <- basename(f)
+    key <- normalize_key(raw_key)
+    dat <- read.csv(f)
+    vals <- if ("residual" %in% names(dat)) dat$residual else dat[[1]]
+    nf_residuals_map[[key]] <- vals
+  }
+  cat("Loaded", length(nf_residuals_map), "NF residual files\n")
+} else {
+  cat("Warning: No NF residual files found in nf_generated_residuals/\n")
+}
+
+# Robust key lookup functions
+make_candidate_keys <- function(config_name, asset_type, asset) {
+  canon <- function(s) normalize_key(s)
+  c(
+    canon(sprintf("%s_%s_%s_residuals_synthetic.csv", config_name, asset_type, asset)),
+    canon(sprintf("%s_%s_%s_residuals_synthetic",    config_name, asset_type, asset)),
+    canon(sprintf("%s_%s_%s_residuals_synthetic.csv", asset_type, asset, config_name)), # legacy order
+    canon(sprintf("%s_%s_%s_residuals_synthetic",     asset_type, asset, config_name))
+  )
+}
+
+find_nf_key <- function(config_name, asset_type, asset, map_names) {
+  cands <- make_candidate_keys(config_name, asset_type, asset)
+  hit <- intersect(cands, map_names)
+  if (length(hit)) hit[[1]] else NULL
 }
 
 
+
+# Source the manual NF-GARCH simulator
+source("scripts/utils/utils_nf_garch.R")
 
 # Define an NF-GARCH Fitting Function
 
 fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
   tryCatch({
-    if (is.null(model_config$distribution) || !is.character(model_config$distribution)) {
+    if (is.null(model_config$dist) || !is.character(model_config$dist)) {
       stop("Distribution must be a non-null character string.")
     }
     
@@ -725,45 +774,39 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
         garchOrder = c(1, 1),
         submodel = model_config$submodel
       ),
-      distribution.model = model_config$distribution
+      distribution.model = model_config$dist
     )
     
     fit <- ugarchfit(spec = spec, data = asset_returns)
     fitted_pars <- coef(fit)
-    spec_par_names <- names(ugarchfit(spec = spec, data = asset_returns, fit.control = list(scale = 1), solver = "hybrid")@fit$coef)
     
-    # Ensure matching names and order
-    if (!all(spec_par_names %in% names(fitted_pars))) {
-      stop(paste("Mismatch in parameter names for", asset_name, model_config$model))
-    }
-    ordered_pars <- fitted_pars[spec_par_names]
+    n_sim <- length(asset_returns)/2
+    sim_returns <- NULL
     
-    
-    sim <- ugarchpath(
-      spec,
-      n.sim = length(asset_returns)/2,
-      m.sim = 1,
-      presigma = tail(sigma(fit), 1),
-      preresiduals = tail(residuals(fit), 1),
-      prereturns = tail(fitted(fit), 1),
-      innovations = nf_resid[1:length(asset_returns)/2],
-      pars = ordered_pars
+        # Use manual simulator directly
+    manual <- simulate_nf_garch(
+      fit,
+      z_nf     = head(nf_resid, n_sim),
+      horizon  = n_sim,
+      model    = model_config[["model"]],
+      submodel = model_config[["submodel"]]
     )
+    sim_returns <- manual$returns
     
-    fitted_values <- fitted(sim)
+    fitted_values <- sim_returns
     mse <- mean((asset_returns - fitted_values)^2, na.rm = TRUE)
     mae <- mean(abs(asset_returns - fitted_values), na.rm = TRUE)
     
-    return(data.frame(
-      Model = model_config$model,
-      Distribution = model_config$distribution,
-      Asset = asset_name,
-      AIC = infocriteria(fit)[1],
-      BIC = infocriteria(fit)[2],
-      LogLikelihood = likelihood(fit),
-      MSE = mse,
-      MAE = mae
-    ))
+         return(data.frame(
+       Model = model_config$model,
+       Distribution = model_config$dist,
+       Asset = asset_name,
+       AIC = infocriteria(fit)[1],
+       BIC = infocriteria(fit)[2],
+       LogLikelihood = likelihood(fit),
+       MSE = mse,
+       MAE = mae
+     ))
   }, error = function(e) {
     message(paste("❌ Error for", asset_name, model_config$model, ":", e$message))
     return(NULL)
@@ -782,18 +825,26 @@ for (config_name in names(model_configs)) {
   
   # FX
   for (asset in names(fx_returns)) {
-    key <- paste0( config_name, "_", "fx_", asset, "_residuals_synthetic")
-    if (!key %in% names(nf_residuals_map)) next
-    cat("NF-GARCH (FX):", asset, config_name, "\n")
+    key <- find_nf_key(config_name, "fx", asset, names(nf_residuals_map))
+    if (is.null(key)) {
+      cat("⚠️ Missing NF residuals for", asset, config_name, "\n")
+      next
+    }
+    
+    cat("🔁 Running NF-GARCH CV (FX):", asset, "[", config_name, "] using key:", key, "\n")
     r <- fit_nf_garch(asset, fx_returns[[asset]], cfg, nf_residuals_map[[key]])
     if (!is.null(r)) nf_results[[length(nf_results) + 1]] <- r
   }
   
   # Equity
   for (asset in names(equity_returns)) {
-    key <- paste0( config_name, "_", "equity_", asset, "_residuals_synthetic")
-    if (!key %in% names(nf_residuals_map)) next
-    cat("NF-GARCH (EQ):", asset, config_name, "\n")
+    key <- find_nf_key(config_name, "equity", asset, names(nf_residuals_map))
+    if (is.null(key)) {
+      cat("⚠️ Missing NF residuals for", asset, config_name, "\n")
+      next
+    }
+    
+    cat("🔁 Running NF-GARCH CV (EQ):", asset, "[", config_name, "] using key:", key, "\n")
     r <- fit_nf_garch(asset, equity_returns[[asset]], cfg, nf_residuals_map[[key]])
     if (!is.null(r)) nf_results[[length(nf_results) + 1]] <- r
   }

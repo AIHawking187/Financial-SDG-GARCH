@@ -1,0 +1,893 @@
+Folder structure for c:\Users\dullz\OneDrive\Documents\1. Education\3. University - Masters\Financial-SDG-GARCH
+
+Financial-SDG-GARCH/
+├── artifacts/
+│   └── eda/
+│   │   ├── stationarity.csv
+│   │   ├── stylized_facts.csv
+│   │   └── summary_stats.csv
+├── configs/
+├── data/
+│   ├── processed/
+│   │   ├── ts_cv_folds/
+│   │   └── raw (FX + EQ).csv
+│   ├── raw/
+│   │   ├── exchange_rate_to_usd.csv
+│   │   ├── fx_equity_prices.csv
+│   │   └── raw (FX).csv
+│   └── residuals_by_model/
+│   │   ├── egarch_equity_AAPL_residuals_synthetic.csv
+│   │   ├── egarch_equity_AMZN_residuals_synthetic.csv
+│   │   ├── egarch_equity_DJT_residuals_synthetic.csv
+│   │   ├── egarch_equity_MLGO_residuals_synthetic.csv
+│   │   ├── egarch_equity_NVDA_residuals_synthetic.csv
+│   │   ├── egarch_fx_EURUSD_residuals_synthetic.csv
+│   │   ├── egarch_fx_EURZAR_residuals_synthetic.csv
+│   │   ├── egarch_fx_GBPCNY_residuals_synthetic.csv
+│   │   ├── egarch_fx_GBPUSD_residuals_synthetic.csv
+│   │   ├── egarch_fx_USDZAR_residuals_synthetic.csv
+│   │   ├── equity_AAPL_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AAPL_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AAPL_residuals_synthetic.csv
+│   │   ├── equity_AAPL_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_AMZN_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_CAT_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_CAT_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_CAT_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_DJT_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_DJT_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_DJT_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MLGO_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MLGO_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MLGO_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MSFT_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MSFT_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_MSFT_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_NVDA_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_PG_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_PG_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_PG_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_PG_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_PG_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_WMT_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_WMT_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── equity_WMT_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── fx_USDZAR_TS_CV_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   │   ├── gjrgarch_equity_AAPL_residuals_synthetic.csv
+│   │   ├── gjrgarch_equity_AMZN_residuals_synthetic.csv
+│   │   ├── gjrgarch_equity_DJT_residuals_synthetic.csv
+│   │   ├── gjrgarch_equity_MLGO_residuals_synthetic.csv
+│   │   ├── gjrgarch_equity_NVDA_residuals_synthetic.csv
+│   │   ├── gjrgarch_fx_EURUSD_residuals_synthetic.csv
+│   │   ├── gjrgarch_fx_EURZAR_residuals_synthetic.csv
+│   │   ├── gjrgarch_fx_GBPCNY_residuals_synthetic.csv
+│   │   ├── gjrgarch_fx_GBPUSD_residuals_synthetic.csv
+│   │   ├── gjrgarch_fx_GBPZAR_residuals_synthetic.csv
+│   │   ├── gjrgarch_fx_USDZAR_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_AAPL_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_AMZN_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_CAT_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_DJT_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_MLGO_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_MSFT_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_NVDA_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_PG_residuals_synthetic.csv
+│   │   ├── sgarch_norm_equity_WMT_residuals_synthetic.csv
+│   │   ├── sgarch_norm_fx_EURUSD_residuals_synthetic.csv
+│   │   ├── sgarch_norm_fx_EURZAR_residuals_synthetic.csv
+│   │   ├── sgarch_norm_fx_GBPCNY_residuals_synthetic.csv
+│   │   ├── sgarch_norm_fx_GBPUSD_residuals_synthetic.csv
+│   │   ├── sgarch_norm_fx_GBPZAR_residuals_synthetic.csv
+│   │   ├── sgarch_norm_fx_USDZAR_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_AAPL_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_AMZN_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_CAT_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_DJT_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_MLGO_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_MSFT_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_NVDA_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_PG_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_equity_WMT_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_fx_EURUSD_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_fx_EURZAR_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_fx_GBPCNY_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_fx_GBPUSD_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_fx_GBPZAR_residuals_synthetic.csv
+│   │   ├── sgarch_sstd_fx_USDZAR_residuals_synthetic.csv
+│   │   ├── tgarch_equity_AAPL_residuals_synthetic.csv
+│   │   ├── tgarch_equity_MLGO_residuals_synthetic.csv
+│   │   ├── tgarch_equity_NVDA_residuals_synthetic.csv
+│   │   ├── tgarch_fx_EURUSD_residuals_synthetic.csv
+│   │   ├── tgarch_fx_EURZAR_residuals_synthetic.csv
+│   │   ├── tgarch_fx_GBPCNY_residuals_synthetic.csv
+│   │   ├── tgarch_fx_GBPUSD_residuals_synthetic.csv
+│   │   ├── tgarch_fx_GBPZAR_residuals_synthetic.csv
+│   │   ├── tgarch_fx_USDZAR_residuals_synthetic.csv
+│   │   └── usdzar_residuals.csv
+├── environment/
+│   ├── environment.yml
+│   ├── pip_freeze.txt
+│   ├── R_sessionInfo.txt
+│   ├── renv.lock
+│   └── requirements.txt
+├── nf_generated_residuals/
+│   ├── eGARCH_fx_GBPZAR_residuals_synthetic.csv
+│   ├── equity_AMZN_Chrono_Split_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   ├── equity_AMZN_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_AMZN_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_AMZN_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_AMZN_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_CAT_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_CAT_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_MSFT_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_MSFT_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_NVDA_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_NVDA_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_NVDA_residuals_TGARCH_residuals_synthetic_synthetic.csv
+│   ├── equity_NVDA_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_NVDA_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_PG_TS_CV_residuals_eGARCH_residuals_synthetic_synthetic.csv
+│   ├── equity_PG_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_PG_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── equity_WMT_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── equity_WMT_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_EURUSD_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_EURUSD_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_EURUSD_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_EURUSD_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_EURZAR_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_EURZAR_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_EURZAR_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   ├── fx_EURZAR_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_EURZAR_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPCNY_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPCNY_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPCNY_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPCNY_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPUSD_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPUSD_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPUSD_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPUSD_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPZAR_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPZAR_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPZAR_TS_CV_residuals_gjrGARCH_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPZAR_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_GBPZAR_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_USDZAR_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_USDZAR_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── fx_USDZAR_TS_CV_residuals_sGARCH_norm_residuals_synthetic_synthetic.csv
+│   ├── fx_USDZAR_TS_CV_residuals_sGARCH_sstd_residuals_synthetic_synthetic.csv
+│   ├── sGARCH_norm_equity_AAPL_residuals_synthetic.csv
+│   ├── sGARCH_norm_equity_AMZN_residuals_synthetic.csv
+│   ├── sGARCH_norm_equity_DJT_residuals_synthetic.csv
+│   ├── sGARCH_norm_equity_MLGO_residuals_synthetic.csv
+│   ├── sGARCH_norm_equity_NVDA_residuals_synthetic.csv
+│   ├── sGARCH_norm_fx_EURUSD_residuals_synthetic.csv
+│   ├── sGARCH_norm_fx_EURZAR_residuals_synthetic.csv
+│   ├── sGARCH_norm_fx_GBPCNY_residuals_synthetic.csv
+│   ├── sGARCH_norm_fx_GBPUSD_residuals_synthetic.csv
+│   ├── sGARCH_norm_fx_GBPZAR_residuals_synthetic.csv
+│   ├── sGARCH_norm_fx_USDZAR_residuals_synthetic.csv
+│   ├── sGARCH_sstd_equity_AAPL_residuals_synthetic.csv
+│   ├── sGARCH_sstd_equity_AMZN_residuals_synthetic.csv
+│   ├── sGARCH_sstd_equity_DJT_residuals_synthetic.csv
+│   ├── sGARCH_sstd_equity_MLGO_residuals_synthetic.csv
+│   ├── sGARCH_sstd_equity_NVDA_residuals_synthetic.csv
+│   ├── sGARCH_sstd_fx_EURUSD_residuals_synthetic.csv
+│   ├── sGARCH_sstd_fx_EURZAR_residuals_synthetic.csv
+│   ├── sGARCH_sstd_fx_GBPCNY_residuals_synthetic.csv
+│   ├── sGARCH_sstd_fx_GBPUSD_residuals_synthetic.csv
+│   ├── sGARCH_sstd_fx_GBPZAR_residuals_synthetic.csv
+│   ├── sGARCH_sstd_fx_USDZAR_residuals_synthetic.csv
+│   ├── TGARCH_equity_AMZN_residuals_synthetic.csv
+│   └── TGARCH_equity_DJT_residuals_synthetic.csv
+├── outputs/
+│   ├── eda/
+│   │   ├── figures/
+│   │   │   ├── AAPL_histogram.png
+│   │   │   ├── AMZN_histogram.png
+│   │   │   ├── CAT_histogram.png
+│   │   │   ├── DJT_histogram.png
+│   │   │   ├── EURUSD_histogram.png
+│   │   │   ├── EURZAR_histogram.png
+│   │   │   ├── GBPCNY_histogram.png
+│   │   │   ├── GBPUSD_histogram.png
+│   │   │   ├── GBPZAR_histogram.png
+│   │   │   ├── MLGO_histogram.png
+│   │   │   ├── MSFT_histogram.png
+│   │   │   ├── NVDA_histogram.png
+│   │   │   ├── PDCO_histogram.png
+│   │   │   ├── PG_histogram.png
+│   │   │   ├── price_comparison_usdzar.png
+│   │   │   ├── USDZAR_histogram.png
+│   │   │   └── WMT_histogram.png
+│   │   └── tables/
+│   ├── model_eval/
+│   │   ├── figures/
+│   │   │   ├── AAPL_real_vs_synthetic.png
+│   │   │   ├── AAPL_volatility.png
+│   │   │   ├── AMZN_forecast_comparison.png
+│   │   │   ├── AMZN_real_vs_synthetic.png
+│   │   │   ├── AMZN_volatility.png
+│   │   │   ├── CAT_forecast_comparison.png
+│   │   │   ├── CAT_real_vs_synthetic.png
+│   │   │   ├── DJT_hist.png
+│   │   │   ├── DJT_real_vs_synthetic.png
+│   │   │   ├── DJT_volatility.png
+│   │   │   ├── eGARCH - EURUSD_volatility.png
+│   │   │   ├── eGARCH - EURZAR_volatility.png
+│   │   │   ├── eGARCH - GBPCNY_volatility.png
+│   │   │   ├── eGARCH - GBPUSD_volatility.png
+│   │   │   ├── eGARCH - GBPZAR_volatility.png
+│   │   │   ├── eGARCH - USDZAR_volatility.png
+│   │   │   ├── EURUSD_forecast_comparison.png
+│   │   │   ├── EURUSD_hist.png
+│   │   │   ├── EURUSD_real_vs_synthetic.png
+│   │   │   ├── EURUSD_volatility.png
+│   │   │   ├── EURZAR_forecast_comparison.png
+│   │   │   ├── EURZAR_hist.png
+│   │   │   ├── EURZAR_real_vs_synthetic.png
+│   │   │   ├── EURZAR_volatility.png
+│   │   │   ├── excess_kurtosis_comparison.png
+│   │   │   ├── GBPCNY_forecast_comparison.png
+│   │   │   ├── GBPCNY_hist.png
+│   │   │   ├── GBPCNY_real_vs_synthetic.png
+│   │   │   ├── GBPCNY_volatility.png
+│   │   │   ├── GBPUSD_forecast_comparison.png
+│   │   │   ├── GBPUSD_hist.png
+│   │   │   ├── GBPUSD_real_vs_synthetic.png
+│   │   │   ├── GBPUSD_volatility.png
+│   │   │   ├── GBPZAR_forecast_comparison.png
+│   │   │   ├── GBPZAR_hist.png
+│   │   │   ├── GBPZAR_real_vs_synthetic.png
+│   │   │   ├── GBPZAR_volatility.png
+│   │   │   ├── GJR-GARCH - AAPL_volatility.png
+│   │   │   ├── GJR-GARCH - JNJ_volatility.png
+│   │   │   ├── GJR-GARCH - JPM_volatility.png
+│   │   │   ├── GJR-GARCH - NVDA_volatility.png
+│   │   │   ├── GJR-GARCH - TSLA_volatility.png
+│   │   │   ├── JNJ_hist.png
+│   │   │   ├── JPM_hist.png
+│   │   │   ├── MLGO_hist.png
+│   │   │   ├── MLGO_real_vs_synthetic.png
+│   │   │   ├── MLGO_volatility.png
+│   │   │   ├── MSFT_forecast_comparison.png
+│   │   │   ├── MSFT_real_vs_synthetic.png
+│   │   │   ├── NVDA_forecast_comparison.png
+│   │   │   ├── NVDA_hist.png
+│   │   │   ├── NVDA_real_vs_synthetic.png
+│   │   │   ├── NVDA_volatility.png
+│   │   │   ├── PDCO_hist.png
+│   │   │   ├── PDCO_real_vs_synthetic.png
+│   │   │   ├── PDCO_volatility.png
+│   │   │   ├── PG_forecast_comparison.png
+│   │   │   ├── PG_real_vs_synthetic.png
+│   │   │   ├── TSLA_hist.png
+│   │   │   ├── TSLA_volatility.png
+│   │   │   ├── USDZAR_forecast_comparison.png
+│   │   │   ├── USDZAR_hist.png
+│   │   │   ├── USDZAR_real_vs_synthetic.png
+│   │   │   ├── USDZAR_volatility.png
+│   │   │   ├── volatility_clustering_heatmap.png
+│   │   │   ├── WMT_forecast_comparison.png
+│   │   │   └── WMT_real_vs_synthetic.png
+│   │   └── tables/
+│   │   │   ├── asset_type_comparison.csv
+│   │   │   ├── best_models_per_asset.csv
+│   │   │   ├── forecast_accuracy_summary.csv
+│   │   │   ├── garch_comparison.csv
+│   │   │   ├── model_ranking.csv
+│   │   │   └── stylized_facts_summary.csv
+│   ├── stress_tests/
+│   │   ├── figures/
+│   │   │   ├── model_convergence_stress.png
+│   │   │   ├── model_performance_heatmap.png
+│   │   │   └── volatility_stress_comparison.png
+│   │   └── tables/
+│   │   │   ├── model_robustness_scores.csv
+│   │   │   └── stress_test_summary.csv
+│   ├── supplementary/
+│   │   └── all_per_asset_metrics.xlsx
+│   └── var_backtest/
+│   │   ├── figures/
+│   │   │   ├── backtest_results_heatmap.png
+│   │   │   └── violation_rates_comparison.png
+│   │   └── tables/
+│   │   │   ├── model_performance_summary.csv
+│   │   │   └── var_backtest_summary.csv
+├── reports/
+│   └── eda/
+│   │   ├── acf_AMZN.png
+│   │   ├── acf_CAT.png
+│   │   ├── acf_EURUSD.png
+│   │   ├── acf_EURZAR.png
+│   │   ├── acf_GBPCNY.png
+│   │   ├── acf_GBPUSD.png
+│   │   ├── acf_GBPZAR.png
+│   │   ├── acf_MSFT.png
+│   │   ├── acf_NVDA.png
+│   │   ├── acf_PG.png
+│   │   ├── acf_USDZAR.png
+│   │   ├── acf_WMT.png
+│   │   ├── corr_heatmap.png
+│   │   ├── EDA_Report.md
+│   │   ├── prices.png
+│   │   ├── qq_AMZN.png
+│   │   ├── qq_CAT.png
+│   │   ├── qq_EURUSD.png
+│   │   ├── qq_EURZAR.png
+│   │   ├── qq_GBPCNY.png
+│   │   ├── qq_GBPUSD.png
+│   │   ├── qq_GBPZAR.png
+│   │   ├── qq_MSFT.png
+│   │   ├── qq_NVDA.png
+│   │   ├── qq_PG.png
+│   │   ├── qq_USDZAR.png
+│   │   ├── qq_WMT.png
+│   │   └── returns.png
+├── residuals_by_model/
+│   ├── eGARCH/
+│   │   ├── equity_AMZN_Chrono_Split_residuals.csv
+│   │   ├── equity_AMZN_TS_CV_residuals.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals.csv
+│   │   ├── equity_CAT_TS_CV_residuals.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals.csv
+│   │   ├── equity_MSFT_TS_CV_residuals.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals.csv
+│   │   ├── equity_NVDA_TS_CV_residuals.csv
+│   │   ├── equity_PG_Chrono_Split_residuals.csv
+│   │   ├── equity_PG_TS_CV_residuals.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals.csv
+│   │   ├── equity_WMT_TS_CV_residuals.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals.csv
+│   │   └── fx_USDZAR_TS_CV_residuals.csv
+│   ├── gjrGARCH/
+│   │   ├── equity_AMZN_Chrono_Split_residuals.csv
+│   │   ├── equity_AMZN_TS_CV_residuals.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals.csv
+│   │   ├── equity_CAT_TS_CV_residuals.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals.csv
+│   │   ├── equity_MSFT_TS_CV_residuals.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals.csv
+│   │   ├── equity_NVDA_TS_CV_residuals.csv
+│   │   ├── equity_PG_Chrono_Split_residuals.csv
+│   │   ├── equity_PG_TS_CV_residuals.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals.csv
+│   │   ├── equity_WMT_TS_CV_residuals.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals.csv
+│   │   └── fx_USDZAR_TS_CV_residuals.csv
+│   ├── sGARCH_norm/
+│   │   ├── equity_AMZN_Chrono_Split_residuals.csv
+│   │   ├── equity_AMZN_TS_CV_residuals.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals.csv
+│   │   ├── equity_CAT_TS_CV_residuals.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals.csv
+│   │   ├── equity_MSFT_TS_CV_residuals.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals.csv
+│   │   ├── equity_NVDA_TS_CV_residuals.csv
+│   │   ├── equity_PG_Chrono_Split_residuals.csv
+│   │   ├── equity_PG_TS_CV_residuals.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals.csv
+│   │   ├── equity_WMT_TS_CV_residuals.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals.csv
+│   │   └── fx_USDZAR_TS_CV_residuals.csv
+│   ├── sGARCH_sstd/
+│   │   ├── equity_AMZN_Chrono_Split_residuals.csv
+│   │   ├── equity_AMZN_TS_CV_residuals.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals.csv
+│   │   ├── equity_CAT_TS_CV_residuals.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals.csv
+│   │   ├── equity_MSFT_TS_CV_residuals.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals.csv
+│   │   ├── equity_NVDA_TS_CV_residuals.csv
+│   │   ├── equity_PG_Chrono_Split_residuals.csv
+│   │   ├── equity_PG_TS_CV_residuals.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals.csv
+│   │   ├── equity_WMT_TS_CV_residuals.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals.csv
+│   │   └── fx_USDZAR_TS_CV_residuals.csv
+│   └── TGARCH/
+│   │   ├── equity_AMZN_Chrono_Split_residuals.csv
+│   │   ├── equity_AMZN_TS_CV_residuals.csv
+│   │   ├── equity_CAT_Chrono_Split_residuals.csv
+│   │   ├── equity_CAT_TS_CV_residuals.csv
+│   │   ├── equity_MSFT_Chrono_Split_residuals.csv
+│   │   ├── equity_MSFT_TS_CV_residuals.csv
+│   │   ├── equity_NVDA_Chrono_Split_residuals.csv
+│   │   ├── equity_NVDA_TS_CV_residuals.csv
+│   │   ├── equity_PG_Chrono_Split_residuals.csv
+│   │   ├── equity_PG_TS_CV_residuals.csv
+│   │   ├── equity_WMT_Chrono_Split_residuals.csv
+│   │   ├── equity_WMT_TS_CV_residuals.csv
+│   │   ├── fx_EURUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_EURUSD_TS_CV_residuals.csv
+│   │   ├── fx_EURZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_EURZAR_TS_CV_residuals.csv
+│   │   ├── fx_GBPCNY_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPCNY_TS_CV_residuals.csv
+│   │   ├── fx_GBPUSD_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPUSD_TS_CV_residuals.csv
+│   │   ├── fx_GBPZAR_Chrono_Split_residuals.csv
+│   │   ├── fx_GBPZAR_TS_CV_residuals.csv
+│   │   ├── fx_USDZAR_Chrono_Split_residuals.csv
+│   │   └── fx_USDZAR_TS_CV_residuals.csv
+├── results/
+│   ├── plots/
+│   │   ├── equity_eGARCH/
+│   │   │   ├── AAPL_volatility.png
+│   │   │   ├── AMZN_volatility.png
+│   │   │   ├── DJT_volatility.png
+│   │   │   ├── MLGO_volatility.png
+│   │   │   ├── NVDA_volatility.png
+│   │   │   └── PDCO_volatility.png
+│   │   ├── equity_gjrGARCH/
+│   │   │   ├── AAPL_volatility.png
+│   │   │   ├── AMZN_volatility.png
+│   │   │   ├── DJT_volatility.png
+│   │   │   ├── MLGO_volatility.png
+│   │   │   ├── NVDA_volatility.png
+│   │   │   └── PDCO_volatility.png
+│   │   ├── equity_sGARCH_norm/
+│   │   │   ├── AAPL_volatility.png
+│   │   │   ├── AMZN_volatility.png
+│   │   │   ├── DJT_volatility.png
+│   │   │   ├── MLGO_volatility.png
+│   │   │   ├── NVDA_volatility.png
+│   │   │   └── PDCO_volatility.png
+│   │   ├── equity_sGARCH_sstd/
+│   │   │   ├── AAPL_volatility.png
+│   │   │   ├── AMZN_volatility.png
+│   │   │   ├── DJT_volatility.png
+│   │   │   ├── MLGO_volatility.png
+│   │   │   ├── NVDA_volatility.png
+│   │   │   └── PDCO_volatility.png
+│   │   ├── equity_TGARCH/
+│   │   │   ├── AAPL_volatility.png
+│   │   │   ├── AMZN_volatility.png
+│   │   │   ├── DJT_volatility.png
+│   │   │   ├── MLGO_volatility.png
+│   │   │   ├── NVDA_volatility.png
+│   │   │   └── PDCO_volatility.png
+│   │   ├── exhaustive/
+│   │   │   ├── histograms_Real_Equity/
+│   │   │   │   ├── AAPL_histogram.png
+│   │   │   │   ├── AMZN_histogram.png
+│   │   │   │   ├── CAT_histogram.png
+│   │   │   │   ├── DJT_histogram.png
+│   │   │   │   ├── MLGO_histogram.png
+│   │   │   │   ├── MSFT_histogram.png
+│   │   │   │   ├── NVDA_histogram.png
+│   │   │   │   ├── PG_histogram.png
+│   │   │   │   └── WMT_histogram.png
+│   │   │   ├── histograms_Real_FX/
+│   │   │   │   ├── EURUSD_histogram.png
+│   │   │   │   ├── EURZAR_histogram.png
+│   │   │   │   ├── GBPCNY_histogram.png
+│   │   │   │   ├── GBPUSD_histogram.png
+│   │   │   │   ├── GBPZAR_histogram.png
+│   │   │   │   └── USDZAR_histogram.png
+│   │   │   ├── histograms_Synthetic/
+│   │   │   │   ├── AAPL_histogram.png
+│   │   │   │   ├── AMZN_histogram.png
+│   │   │   │   ├── CAT_histogram.png
+│   │   │   │   ├── DJT_histogram.png
+│   │   │   │   ├── EURUSD_histogram.png
+│   │   │   │   ├── EURZAR_histogram.png
+│   │   │   │   ├── GBPCNY_histogram.png
+│   │   │   │   ├── GBPUSD_histogram.png
+│   │   │   │   ├── GBPZAR_histogram.png
+│   │   │   │   ├── MLGO_histogram.png
+│   │   │   │   ├── MSFT_histogram.png
+│   │   │   │   ├── NVDA_histogram.png
+│   │   │   │   ├── PDCO_histogram.png
+│   │   │   │   ├── PG_histogram.png
+│   │   │   │   ├── USDZAR_histogram.png
+│   │   │   │   └── WMT_histogram.png
+│   │   │   ├── real_vs_synthetic_eGARCH_equity/
+│   │   │   │   ├── AAPL_real_vs_synthetic.png
+│   │   │   │   ├── AMZN_real_vs_synthetic.png
+│   │   │   │   ├── CAT_real_vs_synthetic.png
+│   │   │   │   ├── DJT_real_vs_synthetic.png
+│   │   │   │   ├── MLGO_real_vs_synthetic.png
+│   │   │   │   ├── MSFT_real_vs_synthetic.png
+│   │   │   │   ├── NVDA_real_vs_synthetic.png
+│   │   │   │   ├── PDCO_real_vs_synthetic.png
+│   │   │   │   ├── PG_real_vs_synthetic.png
+│   │   │   │   └── WMT_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_eGARCH_fx/
+│   │   │   │   ├── EURUSD_real_vs_synthetic.png
+│   │   │   │   ├── EURZAR_real_vs_synthetic.png
+│   │   │   │   ├── GBPCNY_real_vs_synthetic.png
+│   │   │   │   ├── GBPUSD_real_vs_synthetic.png
+│   │   │   │   ├── GBPZAR_real_vs_synthetic.png
+│   │   │   │   └── USDZAR_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_gjrGARCH_equity/
+│   │   │   │   ├── AAPL_real_vs_synthetic.png
+│   │   │   │   ├── AMZN_real_vs_synthetic.png
+│   │   │   │   ├── CAT_real_vs_synthetic.png
+│   │   │   │   ├── DJT_real_vs_synthetic.png
+│   │   │   │   ├── MLGO_real_vs_synthetic.png
+│   │   │   │   ├── MSFT_real_vs_synthetic.png
+│   │   │   │   ├── NVDA_real_vs_synthetic.png
+│   │   │   │   ├── PDCO_real_vs_synthetic.png
+│   │   │   │   ├── PG_real_vs_synthetic.png
+│   │   │   │   └── WMT_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_gjrGARCH_fx/
+│   │   │   │   ├── EURUSD_real_vs_synthetic.png
+│   │   │   │   ├── EURZAR_real_vs_synthetic.png
+│   │   │   │   ├── GBPCNY_real_vs_synthetic.png
+│   │   │   │   ├── GBPUSD_real_vs_synthetic.png
+│   │   │   │   ├── GBPZAR_real_vs_synthetic.png
+│   │   │   │   └── USDZAR_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_sGARCH_norm_equity/
+│   │   │   │   ├── AAPL_real_vs_synthetic.png
+│   │   │   │   ├── AMZN_real_vs_synthetic.png
+│   │   │   │   ├── CAT_real_vs_synthetic.png
+│   │   │   │   ├── DJT_real_vs_synthetic.png
+│   │   │   │   ├── MLGO_real_vs_synthetic.png
+│   │   │   │   ├── MSFT_real_vs_synthetic.png
+│   │   │   │   ├── NVDA_real_vs_synthetic.png
+│   │   │   │   ├── PDCO_real_vs_synthetic.png
+│   │   │   │   ├── PG_real_vs_synthetic.png
+│   │   │   │   └── WMT_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_sGARCH_norm_fx/
+│   │   │   │   ├── EURUSD_real_vs_synthetic.png
+│   │   │   │   ├── EURZAR_real_vs_synthetic.png
+│   │   │   │   ├── GBPCNY_real_vs_synthetic.png
+│   │   │   │   ├── GBPUSD_real_vs_synthetic.png
+│   │   │   │   ├── GBPZAR_real_vs_synthetic.png
+│   │   │   │   └── USDZAR_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_sGARCH_sstd_equity/
+│   │   │   │   ├── AAPL_real_vs_synthetic.png
+│   │   │   │   ├── AMZN_real_vs_synthetic.png
+│   │   │   │   ├── CAT_real_vs_synthetic.png
+│   │   │   │   ├── DJT_real_vs_synthetic.png
+│   │   │   │   ├── MLGO_real_vs_synthetic.png
+│   │   │   │   ├── MSFT_real_vs_synthetic.png
+│   │   │   │   ├── NVDA_real_vs_synthetic.png
+│   │   │   │   ├── PDCO_real_vs_synthetic.png
+│   │   │   │   ├── PG_real_vs_synthetic.png
+│   │   │   │   └── WMT_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_sGARCH_sstd_fx/
+│   │   │   │   ├── EURUSD_real_vs_synthetic.png
+│   │   │   │   ├── EURZAR_real_vs_synthetic.png
+│   │   │   │   ├── GBPCNY_real_vs_synthetic.png
+│   │   │   │   ├── GBPUSD_real_vs_synthetic.png
+│   │   │   │   ├── GBPZAR_real_vs_synthetic.png
+│   │   │   │   └── USDZAR_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_TGARCH_equity/
+│   │   │   │   ├── AAPL_real_vs_synthetic.png
+│   │   │   │   ├── AMZN_real_vs_synthetic.png
+│   │   │   │   ├── CAT_real_vs_synthetic.png
+│   │   │   │   ├── DJT_real_vs_synthetic.png
+│   │   │   │   ├── MLGO_real_vs_synthetic.png
+│   │   │   │   ├── MSFT_real_vs_synthetic.png
+│   │   │   │   ├── NVDA_real_vs_synthetic.png
+│   │   │   │   ├── PDCO_real_vs_synthetic.png
+│   │   │   │   ├── PG_real_vs_synthetic.png
+│   │   │   │   └── WMT_real_vs_synthetic.png
+│   │   │   ├── real_vs_synthetic_TGARCH_fx/
+│   │   │   │   ├── EURUSD_real_vs_synthetic.png
+│   │   │   │   ├── EURZAR_real_vs_synthetic.png
+│   │   │   │   ├── GBPCNY_real_vs_synthetic.png
+│   │   │   │   ├── GBPUSD_real_vs_synthetic.png
+│   │   │   │   ├── GBPZAR_real_vs_synthetic.png
+│   │   │   │   └── USDZAR_real_vs_synthetic.png
+│   │   │   ├── volatility_eGARCH_equity/
+│   │   │   │   ├── AAPL_volatility.png
+│   │   │   │   ├── AMZN_volatility.png
+│   │   │   │   ├── CAT_volatility.png
+│   │   │   │   ├── DJT_volatility.png
+│   │   │   │   ├── MLGO_volatility.png
+│   │   │   │   ├── MSFT_volatility.png
+│   │   │   │   ├── NVDA_volatility.png
+│   │   │   │   ├── PDCO_volatility.png
+│   │   │   │   ├── PG_volatility.png
+│   │   │   │   └── WMT_volatility.png
+│   │   │   ├── volatility_eGARCH_fx/
+│   │   │   │   ├── EURUSD_volatility.png
+│   │   │   │   ├── EURZAR_volatility.png
+│   │   │   │   ├── GBPCNY_volatility.png
+│   │   │   │   ├── GBPUSD_volatility.png
+│   │   │   │   ├── GBPZAR_volatility.png
+│   │   │   │   └── USDZAR_volatility.png
+│   │   │   ├── volatility_gjrGARCH_equity/
+│   │   │   │   ├── AAPL_volatility.png
+│   │   │   │   ├── AMZN_volatility.png
+│   │   │   │   ├── CAT_volatility.png
+│   │   │   │   ├── DJT_volatility.png
+│   │   │   │   ├── MLGO_volatility.png
+│   │   │   │   ├── MSFT_volatility.png
+│   │   │   │   ├── NVDA_volatility.png
+│   │   │   │   ├── PDCO_volatility.png
+│   │   │   │   ├── PG_volatility.png
+│   │   │   │   └── WMT_volatility.png
+│   │   │   ├── volatility_gjrGARCH_fx/
+│   │   │   │   ├── EURUSD_volatility.png
+│   │   │   │   ├── EURZAR_volatility.png
+│   │   │   │   ├── GBPCNY_volatility.png
+│   │   │   │   ├── GBPUSD_volatility.png
+│   │   │   │   ├── GBPZAR_volatility.png
+│   │   │   │   └── USDZAR_volatility.png
+│   │   │   ├── volatility_sGARCH_norm_equity/
+│   │   │   │   ├── AAPL_volatility.png
+│   │   │   │   ├── AMZN_volatility.png
+│   │   │   │   ├── CAT_volatility.png
+│   │   │   │   ├── DJT_volatility.png
+│   │   │   │   ├── MLGO_volatility.png
+│   │   │   │   ├── MSFT_volatility.png
+│   │   │   │   ├── NVDA_volatility.png
+│   │   │   │   ├── PDCO_volatility.png
+│   │   │   │   ├── PG_volatility.png
+│   │   │   │   └── WMT_volatility.png
+│   │   │   ├── volatility_sGARCH_norm_fx/
+│   │   │   │   ├── EURUSD_volatility.png
+│   │   │   │   ├── EURZAR_volatility.png
+│   │   │   │   ├── GBPCNY_volatility.png
+│   │   │   │   ├── GBPUSD_volatility.png
+│   │   │   │   ├── GBPZAR_volatility.png
+│   │   │   │   └── USDZAR_volatility.png
+│   │   │   ├── volatility_sGARCH_sstd_equity/
+│   │   │   │   ├── AAPL_volatility.png
+│   │   │   │   ├── AMZN_volatility.png
+│   │   │   │   ├── CAT_volatility.png
+│   │   │   │   ├── DJT_volatility.png
+│   │   │   │   ├── MLGO_volatility.png
+│   │   │   │   ├── MSFT_volatility.png
+│   │   │   │   ├── NVDA_volatility.png
+│   │   │   │   ├── PDCO_volatility.png
+│   │   │   │   ├── PG_volatility.png
+│   │   │   │   └── WMT_volatility.png
+│   │   │   ├── volatility_sGARCH_sstd_fx/
+│   │   │   │   ├── EURUSD_volatility.png
+│   │   │   │   ├── EURZAR_volatility.png
+│   │   │   │   ├── GBPCNY_volatility.png
+│   │   │   │   ├── GBPUSD_volatility.png
+│   │   │   │   ├── GBPZAR_volatility.png
+│   │   │   │   └── USDZAR_volatility.png
+│   │   │   ├── volatility_TGARCH_equity/
+│   │   │   │   ├── AAPL_volatility.png
+│   │   │   │   ├── AMZN_volatility.png
+│   │   │   │   ├── CAT_volatility.png
+│   │   │   │   ├── DJT_volatility.png
+│   │   │   │   ├── MLGO_volatility.png
+│   │   │   │   ├── MSFT_volatility.png
+│   │   │   │   ├── NVDA_volatility.png
+│   │   │   │   ├── PDCO_volatility.png
+│   │   │   │   ├── PG_volatility.png
+│   │   │   │   └── WMT_volatility.png
+│   │   │   └── volatility_TGARCH_fx/
+│   │   │   │   ├── EURUSD_volatility.png
+│   │   │   │   ├── EURZAR_volatility.png
+│   │   │   │   ├── GBPCNY_volatility.png
+│   │   │   │   ├── GBPUSD_volatility.png
+│   │   │   │   ├── GBPZAR_volatility.png
+│   │   │   │   └── USDZAR_volatility.png
+│   │   ├── fx_eGARCH/
+│   │   │   ├── EURUSD_volatility.png
+│   │   │   ├── EURZAR_volatility.png
+│   │   │   ├── GBPCNY_volatility.png
+│   │   │   ├── GBPUSD_volatility.png
+│   │   │   ├── GBPZAR_volatility.png
+│   │   │   └── USDZAR_volatility.png
+│   │   ├── fx_gjrGARCH/
+│   │   │   ├── EURUSD_volatility.png
+│   │   │   ├── EURZAR_volatility.png
+│   │   │   ├── GBPCNY_volatility.png
+│   │   │   ├── GBPUSD_volatility.png
+│   │   │   ├── GBPZAR_volatility.png
+│   │   │   └── USDZAR_volatility.png
+│   │   ├── fx_sGARCH_norm/
+│   │   │   ├── EURUSD_volatility.png
+│   │   │   ├── EURZAR_volatility.png
+│   │   │   ├── GBPCNY_volatility.png
+│   │   │   ├── GBPUSD_volatility.png
+│   │   │   ├── GBPZAR_volatility.png
+│   │   │   └── USDZAR_volatility.png
+│   │   ├── fx_sGARCH_sstd/
+│   │   │   ├── EURUSD_volatility.png
+│   │   │   ├── EURZAR_volatility.png
+│   │   │   ├── GBPCNY_volatility.png
+│   │   │   ├── GBPUSD_volatility.png
+│   │   │   ├── GBPZAR_volatility.png
+│   │   │   └── USDZAR_volatility.png
+│   │   ├── fx_TGARCH/
+│   │   │   ├── EURUSD_volatility.png
+│   │   │   ├── EURZAR_volatility.png
+│   │   │   ├── GBPCNY_volatility.png
+│   │   │   ├── GBPUSD_volatility.png
+│   │   │   ├── GBPZAR_volatility.png
+│   │   │   └── USDZAR_volatility.png
+│   │   ├── DJT_hist.png
+│   │   ├── eGARCH - EURUSD_volatility.png
+│   │   ├── eGARCH - EURZAR_volatility.png
+│   │   ├── eGARCH - GBPCNY_volatility.png
+│   │   ├── eGARCH - GBPUSD_volatility.png
+│   │   ├── eGARCH - GBPZAR_volatility.png
+│   │   ├── eGARCH - USDZAR_volatility.png
+│   │   ├── EURUSD_hist.png
+│   │   ├── EURZAR_hist.png
+│   │   ├── GBPCNY_hist.png
+│   │   ├── GBPUSD_hist.png
+│   │   ├── GBPZAR_hist.png
+│   │   ├── GJR-GARCH - AAPL_volatility.png
+│   │   ├── GJR-GARCH - JNJ_volatility.png
+│   │   ├── GJR-GARCH - JPM_volatility.png
+│   │   ├── GJR-GARCH - NVDA_volatility.png
+│   │   ├── GJR-GARCH - TSLA_volatility.png
+│   │   ├── JNJ_hist.png
+│   │   ├── JPM_hist.png
+│   │   ├── MLGO_hist.png
+│   │   ├── NVDA_hist.png
+│   │   ├── PDCO_hist.png
+│   │   ├── TSLA_hist.png
+│   │   ├── TSLA_volatility.png
+│   │   ├── USDZAR_hist.png
+│   │   └── USDZAR_volatility.png
+│   └── tables/
+│   │   └── garch_comparison.csv
+├── scripts/
+│   ├── data_prep/
+│   │   └── data_prep.R
+│   ├── eda/
+│   │   ├── configs/
+│   │   │   └── eda.yaml
+│   │   ├── tests/
+│   │   │   └── test_tails.py
+│   │   ├── eda_finance.py
+│   │   ├── README.md
+│   │   └── requirements.txt
+│   ├── evaluation/
+│   │   ├── distribution_fit_metrics.R
+│   │   ├── stylized_fact_tests.R
+│   │   ├── var_backtesting.R
+│   │   └── wilcoxon_winrate_analysis.R
+│   ├── Manual Scripts/
+│   ├── model_fitting/
+│   │   ├── evaluate_nf_fit.py
+│   │   ├── extract_residuals.R
+│   │   ├── fit_garch_models.R
+│   │   ├── nf_garch_config.yaml
+│   │   └── train_nf_models.py
+│   ├── simulation_forecasting/
+│   │   ├── forecast_garch_variants.R
+│   │   └── simulate_nf_garch.R
+│   ├── stress_tests/
+│   │   └── evaluate_under_stress.R
+│   └── utils/
+│   │   ├── tests/
+│   │   │   └── test_parity_nf_vs_ugarchpath.R
+│   │   ├── check_r_setup.bat
+│   │   ├── safety_functions.R
+│   │   ├── setup_r_environment.R
+│   │   └── utils_nf_garch.R
+├── tests/
+├── 1. NFGARCH - Train and Compare Forecasted Data.xlsx
+├── ai.md
+├── CITATION.cff
+├── debug_nf_residuals.R
+├── Financial-SDG-GARCH-Mapping.srctrlbm
+├── Financial-SDG-GARCH-Mapping.srctrldb
+├── Financial-SDG-GARCH-Mapping.srctrlprj
+├── Financial-SDG-GARCH.Rproj
+├── LICENSE
+├── Makefile
+├── MIGRATION.md
+├── README.md
+├── rename_nf_residuals.py
+├── run_all.bat
+└── run_all.sh

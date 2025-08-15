@@ -1,0 +1,25 @@
+input_csv: "./data/processed/raw (FX + EQ).csv"
+date_column: ""
+parse_dates: true
+dropna: true
+price_columns_include: []      # empty = infer all non-date
+price_columns_exclude: []      # e.g. ["SP500TR"]
+resample: null                 # e.g. "B", "W", "M" or null
+return_type: "log"             # "log" or "simple"
+plots:
+  timeseries: true
+  returns: true
+  acf_pacf: true
+  qq: true
+  heatmap: true
+tests:
+  adf_alpha: 0.05
+  kpss_alpha: 0.05
+  lb_lags: 20
+  arch_lm_lags: 12
+tails:
+  hill_threshold_quantile: 0.95
+output_dirs:
+  reports: "./reports/eda"
+  artifacts: "./artifacts/eda"
+seed: 123

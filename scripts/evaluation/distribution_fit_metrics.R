@@ -725,6 +725,9 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
     nf_residuals_map[[key]] <- read.csv(f)$residual
   }
   
+# Source the manual NF-GARCH simulator
+source("scripts/utils/utils_nf_garch.R")
+
 # Define an NF-GARCH Fitting Function
   
   fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) 
@@ -754,19 +757,40 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
       }
       ordered_pars <- fitted_pars[spec_par_names]
       
+      n_sim <- length(asset_returns)/2
+      sim_returns <- NULL
       
-      sim <- ugarchpath(
-        spec,
-        n.sim = length(asset_returns)/2,
-        m.sim = 1,
-        presigma = tail(sigma(fit), 1),
-        preresiduals = tail(residuals(fit), 1),
-        prereturns = tail(fitted(fit), 1),
-        innovations = nf_resid[1:length(asset_returns)/2],
-        pars = ordered_pars
-      )
+      # Try ugarchpath first
+      sim_returns <- tryCatch({
+        sim <- ugarchpath(
+          spec,
+          n.sim = n_sim,
+          m.sim = 1,
+          presigma = tail(sigma(fit), 1),
+          preresiduals = tail(residuals(fit), 1),
+          prereturns = tail(fitted(fit), 1),
+          innovations = nf_resid[1:n_sim],
+          pars = ordered_pars
+        )
+        fitted(sim)
+      }, error = function(e) {
+        message("⚠️ ugarchpath failed, switching to manual NF simulation: ", conditionMessage(e))
+        NULL
+      })
       
-      fitted_values <- fitted(sim)
+      # Fallback: manual simulator
+      if (is.null(sim_returns)) {
+        manual <- simulate_nf_garch(
+          fit,
+          z_nf    = nf_resid[1:n_sim],
+          horizon = n_sim,
+          model   = model_config$model,
+          submodel = model_config$submodel
+        )
+        sim_returns <- manual$returns
+      }
+      
+      fitted_values <- sim_returns
       mse <- mean((asset_returns - fitted_values)^2, na.rm = TRUE)
       mae <- mean(abs(asset_returns - fitted_values), na.rm = TRUE)
       

@@ -428,6 +428,9 @@ for (key in names(nf_residuals_map)) {
 }
 
 
+# Source the manual NF-GARCH simulator
+source("scripts/utils/utils_nf_garch.R")
+
 # Define an NF-GARCH Fitting Function
 
 fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
@@ -470,18 +473,39 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
     prereturns_val <- tail(fitted(fit), 1)
     if (is.na(prereturns_val)) prereturns_val <- mean(asset_returns, na.rm = TRUE)
     
-    sim <- ugarchpath(
-      spec,
-      n.sim = n_sim,
-      m.sim = 1,
-      presigma = tail(sigma(fit), 1),
-      preresiduals = tail(residuals(fit), 1),
-      prereturns = prereturns_val,
-      innovations = head(nf_resid, n_sim),
-      pars = ordered_pars
-    )
+    sim_returns <- NULL
     
-    fitted_values <- fitted(sim)
+    # Try ugarchpath first
+    sim_returns <- tryCatch({
+      sim <- ugarchpath(
+        spec,
+        n.sim = n_sim,
+        m.sim = 1,
+        presigma = tail(sigma(fit), 1),
+        preresiduals = tail(residuals(fit), 1),
+        prereturns = prereturns_val,
+        innovations = head(nf_resid, n_sim),
+        pars = ordered_pars
+      )
+      fitted(sim)
+    }, error = function(e) {
+      message("⚠️ ugarchpath failed, switching to manual NF simulation: ", conditionMessage(e))
+      NULL
+    })
+    
+    # Fallback: manual simulator
+    if (is.null(sim_returns)) {
+      manual <- simulate_nf_garch(
+        fit,
+        z_nf    = head(nf_resid, n_sim),
+        horizon = n_sim,
+        model   = model_config[["model"]],
+        submodel = model_config[["submodel"]]
+      )
+      sim_returns <- manual$returns
+    }
+    
+    fitted_values <- sim_returns
     mse <- mean((asset_returns - fitted_values)^2, na.rm = TRUE)
     mae <- mean(abs(asset_returns - fitted_values), na.rm = TRUE)
     

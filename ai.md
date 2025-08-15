@@ -265,6 +265,34 @@ pyyaml, argparse
 - **Memory Usage**: Track resource consumption
 - **Scalability Testing**: Validate with larger datasets
 
+### EDA Framework
+- **Python EDA Script**: `scripts/eda/eda_finance.py` - Comprehensive financial time series analysis
+- **Configuration**: `scripts/eda/configs/eda.yaml` - YAML-based configuration for analysis parameters
+- **Requirements**: `scripts/eda/requirements.txt` - Python dependencies for EDA
+- **Tests**: `scripts/eda/tests/test_tails.py` - Unit tests for tail estimation
+- **Documentation**: `scripts/eda/README.md` - Comprehensive EDA documentation
+- **Outputs**: 
+  - `artifacts/eda/` - CSV tables (summary stats, stationarity, stylized facts)
+  - `reports/eda/` - PNG plots and Markdown reports
+- **Features**:
+  - Summary statistics (mean, variance, skewness, excess kurtosis, Jarque-Bera)
+  - Stationarity tests (ADF, KPSS on levels and returns)
+  - Stylized facts (ARCH-LM, Ljung-Box, Hill tail index)
+  - Visualizations (time series, returns, ACF/PACF, QQ plots, correlation heatmap)
+  - Configurable analysis parameters and output options
+- **Usage**: `python scripts/eda/eda_finance.py --config scripts/eda/configs/eda.yaml`
+
+### Manual NF-GARCH Simulator
+- **Utility File**: `scripts/utils/utils_nf_garch.R` - Manual NF-GARCH simulation with fallback functionality
+- **Tests**: `scripts/utils/tests/test_parity_nf_vs_ugarchpath.R` - Parity tests for manual vs ugarchpath
+- **Features**:
+  - Manual implementation of sGARCH, gjrGARCH/TGARCH, and eGARCH recursions
+  - Automatic fallback when `ugarchpath()` fails
+  - NF shock standardization (mean=0, variance=1)
+  - Integration with existing `fit_nf_garch()` and `ts_cross_validate()` functions
+  - Comprehensive error handling and logging
+- **Usage**: Automatically used as fallback in existing NF-GARCH pipelines
+
 ## Future Development Roadmap
 
 ### Phase 1: GAN Integration
