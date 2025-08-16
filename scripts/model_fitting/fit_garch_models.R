@@ -489,6 +489,6 @@ addWorksheet(wb, "Model_Ranking_All")
 writeData(wb, "Model_Ranking_All", ranking_combined)
 
 
-saveWorkbook(wb, "1. NFGARCH - Train and Compare Forecasted Data.xlsx", overwrite = TRUE)
+saveWorkbook(wb, "Initial_GARCH_Model_Fitting.xlsx", overwrite = TRUE)
 
 

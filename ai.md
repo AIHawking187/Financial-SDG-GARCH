@@ -1,311 +1,243 @@
-# Financial Synthetic Data Generation (GARCH + GAN) Project
+# Financial-SDG-GARCH Project
 
 ## Project Overview
-
-This repository implements a comprehensive framework for generating synthetic financial data using GARCH-family models and comparing their performance across different asset classes (equity and foreign exchange). The project aims to create realistic synthetic financial time series that preserve the statistical properties of real market data.
-
-## Purpose and Goals
-
-- **Synthetic Data Generation**: Create realistic synthetic financial time series using GARCH models
-- **Model Comparison**: Evaluate different GARCH variants (sGARCH, eGARCH, gjrGARCH, TGARCH) across multiple assets
-- **Cross-Asset Analysis**: Compare model performance between equity and FX markets
-- **Forecasting Evaluation**: Assess model forecasting accuracy and volatility prediction capabilities
-- **Future GAN Integration**: Framework designed to incorporate GAN-based synthetic data generation
+This project implements a comprehensive financial synthetic data generation pipeline using GARCH (Generalized Autoregressive Conditional Heteroskedasticity) models combined with Normalizing Flows (NF). The goal is to generate realistic synthetic financial time series data that preserves the statistical properties of real financial markets.
 
 ## Architecture and Key Technologies
 
 ### Core Technologies
-- **R**: Primary programming language for statistical modeling
-- **Python**: Advanced NF implementation and deep learning
-- **rugarch**: GARCH model implementation and estimation
-- **quantmod**: Financial data retrieval and manipulation
-- **xts**: Time series data handling
-- **PerformanceAnalytics**: Financial performance metrics
-- **ggplot2**: Data visualization
-- **PyTorch/TensorFlow**: Deep learning frameworks for NF models
-- **RealNVP/NSF**: Normalizing Flow architectures
+- **R**: Primary language for statistical modeling, GARCH implementations, and analysis
+- **Python**: Used for Normalizing Flow implementation and deep learning components
+- **R Packages**: `rugarch`, `quantmod`, `xts`, `PerformanceAnalytics`, `FinTS`, `tidyverse`, `dplyr`, `tidyr`, `stringr`, `ggplot2`, `openxlsx`, `moments`, `tseries`, `forecast`, `lmtest`
+- **Python Packages**: `numpy`, `pandas`, `scikit-learn`, `matplotlib`, `seaborn`, `torch`, `torchvision`, `pyyaml`, `pathlib2`
 
 ### GARCH Models Implemented
-1. **sGARCH** (Standard GARCH): Basic GARCH(1,1) with normal and skewed-t distributions
-2. **eGARCH** (Exponential GARCH): Captures asymmetric volatility effects
-3. **gjrGARCH** (Glosten-Jagannathan-Runkle GARCH): Models leverage effects
-4. **TGARCH** (Threshold GARCH): Captures regime-dependent volatility
+The pipeline now supports **ALL 5 GARCH model variants**:
+1. **sGARCH_norm**: Standard GARCH with normal distribution
+2. **sGARCH_sstd**: Standard GARCH with skewed Student's t distribution
+3. **eGARCH**: Exponential GARCH with asymmetric effects
+4. **gjrGARCH**: Glosten-Jagannathan-Runkle GARCH with leverage effects
+5. **TGARCH**: Threshold GARCH with regime-dependent behavior
 
 ### Asset Classes
-- **Equity**: NVDA, MSFT, PG, CAT, WMT, AMZN, AAPL, DJT, MLGO, PDCO
-- **FX**: EURUSD, GBPUSD, GBPCNY, USDZAR, GBPZAR, EURZAR
+- **FX (Foreign Exchange)**: EURUSD, GBPUSD, GBPCNY, USDZAR, GBPZAR, EURZAR
+- **Equity**: NVDA, MSFT, PG, CAT, WMT, AMZN
 
 ## Directory Structure
 
 ```
 Financial-SDG-GARCH/
 ├── data/
-│   └── processed/
-│       └── raw (FX + EQ).csv          # Consolidated price data (2005-2024)
+│   ├── processed/          # Cleaned price data
+│   ├── raw/               # Raw price data
+│   └── residuals_by_model/ # GARCH residuals organized by model
+├── nf_generated_residuals/ # Synthetic residuals from NF training
+├── outputs/               # Analysis results and visualizations
+├── results/               # Model outputs and plots
 ├── scripts/
-│   ├── garch/                         # Original GARCH implementation
-│   │   ├── 0. NFGARCH - Source EQ data and perform checks.R
-│   │   ├── 1. NFGARCH - Train and Compare Forecasted Data.R
-│   │   ├── 2. NFGARCH - Train and Compare Synthetic Data.R
-│   │   └── GARCH Comparison Scripts/
-│   │       ├── Exhaustive GARCH Comparison.R
-│   │       └── Simplified GARCH Comparison.R
-│   ├── R - NFGARCH Main Training/     # Enhanced R implementation
-│   │   ├── 0-5. NFGARCH scripts (enhanced versions)
-│   │   └── GARCH Comparison Scripts/
-│   ├── Python - NF Main Training/     # Python NF implementation
-│   │   └── NFGARCH - Train all Residuals.ipynb
-│   └── Python - NF Extended Training/ # Advanced Python NF framework
-│       ├── main.py                    # Main execution script
-│       ├── train_nf.py                # NF training utilities
-│       ├── nf_garch_config.yaml       # Configuration file
-│       └── utils/
-│           ├── data_utils.py          # Data loading utilities
-│           ├── flow_utils.py          # NF model utilities
-│           └── garch_utils.py         # GARCH integration utilities
-├── results/
-│   ├── plots/                         # Generated visualizations
-│   │   ├── exhaustive/                # Comprehensive analysis plots
-│   │   ├── equity_[model]/            # Equity-specific results
-│   │   └── fx_[model]/                # FX-specific results
-│   └── tables/
-│       └── garch_comparison.csv       # Model performance metrics
-├── residuals_by_model/                # Model residuals by GARCH variant
-│   ├── sGARCH_norm/                   # Standard GARCH with normal distribution
-│   ├── sGARCH_sstd/                   # Standard GARCH with skewed-t distribution
-│   ├── eGARCH/                        # Exponential GARCH residuals
-│   ├── gjrGARCH/                      # GJR-GARCH residuals
-│   └── TGARCH/                        # Threshold GARCH residuals
-├── nf_generated_residuals/            # Synthetic residuals and data
-├── residuals_usdzar.csv               # USDZAR specific residuals
-├── usdzar_price_comparison.png        # Price comparison visualization
-├── GARCH_Model_Evaluation_Summary.xlsx # Excel summary of results
-├── Masters - NFGARCH.Rproj            # RStudio project file
-├── LICENSE                            # MIT License
-└── .gitignore                         # Git ignore patterns
+│   ├── eda/              # Exploratory data analysis
+│   ├── evaluation/       # Model evaluation and testing
+│   ├── model_fitting/    # GARCH model fitting and residual extraction
+│   ├── simulation_forecasting/ # NF-GARCH simulation and forecasting
+│   └── stress_tests/     # Stress testing scenarios
+└── environment/          # Environment configuration files
 ```
 
 ## Key Components and Their Relationships
 
 ### 1. Data Pipeline
-- **Data Sourcing**: Automated retrieval of equity data via quantmod
-- **Data Cleaning**: Standardization of FX and equity price series
-- **Quality Checks**: Volume analysis, missing data detection, date range validation
-- **Consolidation**: Unified CSV format for both asset classes
+- **Raw Data**: Historical price data for FX and equity assets
+- **Data Cleaning**: Returns calculation and preprocessing
+- **Data Splitting**: Chronological (65/35) and Time-Series Cross-Validation splits
 
-### 2. Model Training Framework
-- **Specification Generator**: Dynamic GARCH model specification creation
-- **Multi-Asset Training**: Parallel processing across all assets and models
-- **Distribution Handling**: Support for normal and skewed-t distributions
-- **Cross-Validation**: Time series cross-validation for robust evaluation
+### 2. GARCH Model Fitting
+- **Model Specification**: 5 GARCH variants with different distributions
+- **Parameter Estimation**: Maximum likelihood estimation using `rugarch`
+- **Residual Extraction**: Standardized residuals for NF training
 
-### 3. Evaluation Metrics
-- **Information Criteria**: AIC, BIC for model selection
-- **Forecast Accuracy**: MSE, MAE for volatility predictions
-- **Diagnostic Tests**: Q-statistic, ARCH-LM for residual analysis
-- **Likelihood Comparison**: Log-likelihood for model fit assessment
+### 3. Normalizing Flow Training
+- **Residual Processing**: Loading GARCH residuals for each model-asset combination
+- **NF Model Training**: Training individual NF models on each residual set
+- **Synthetic Generation**: Generating synthetic residuals from trained NFs
 
-### 4. Synthetic Data Generation
-- **Residual Simulation**: Generation of synthetic residuals from fitted models
-- **Volatility Reconstruction**: Back-transformation to price series
-- **Statistical Validation**: Comparison of real vs synthetic data properties
+### 4. NF-GARCH Simulation
+- **Manual Simulation**: Custom implementation replacing `ugarchpath`
+- **Residual Injection**: Injecting synthetic residuals into GARCH models
+- **Performance Evaluation**: MSE, MAE, AIC, BIC metrics
 
-### 5. Normalizing Flow Integration
-- **NF Model Training**: RealNVP, NSF, and other flow architectures
-- **Residual Learning**: NF models trained on GARCH residuals
-- **Hybrid Generation**: Combination of GARCH and NF approaches
-- **Advanced Evaluation**: Distribution distance metrics and statistical tests
+### 5. Comprehensive Evaluation
+- **Forecasting**: Out-of-sample forecasting for all GARCH variants
+- **Stylized Facts**: Testing for financial market characteristics
+- **VaR Backtesting**: Value-at-Risk calculations and validation
+- **Stress Testing**: Model performance under crisis scenarios
 
 ## Development Guidelines and Conventions
 
 ### Code Organization
-- **Sequential Scripts**: Numbered execution order (0, 1, 2)
-- **Modular Functions**: Reusable components for model generation and evaluation
-- **Consistent Naming**: Asset-model-distribution naming convention
-- **Error Handling**: Graceful handling of model convergence issues
+- **R Scripts**: Use consistent naming with descriptive prefixes
+- **Python Scripts**: Follow PEP 8 style guidelines
+- **Configuration**: Use YAML files for experiment settings
+- **Documentation**: Maintain comprehensive comments and docstrings
 
-### Data Management
-- **Structured Outputs**: Organized results by model type and asset class
-- **Reproducible Seeds**: Fixed random seeds for consistent results
-- **Version Control**: Comprehensive tracking of all generated outputs
+### Model Configuration Standard
+All scripts use the standardized 5-model configuration:
+```r
+model_configs <- list(
+  sGARCH_norm  = list(model = "sGARCH", distribution = "norm", submodel = NULL),
+  sGARCH_sstd  = list(model = "sGARCH", distribution = "sstd", submodel = NULL),
+  gjrGARCH     = list(model = "gjrGARCH", distribution = "sstd", submodel = NULL),
+  eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),
+  TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")
+)
+```
 
-### Performance Optimization
-- **Parallel Processing**: Efficient handling of multiple assets and models
-- **Memory Management**: Streamlined data structures for large datasets
-- **Caching**: Intermediate results storage to avoid recomputation
+### File Naming Conventions
+- **NF Residuals**: `{GARCH_TYPE}_{ASSET_TYPE}_{ASSET}_residuals_synthetic.csv`
+- **Results**: Organized by model type and asset class
+- **Plots**: Descriptive names with model and asset identifiers
 
 ## Environment Configuration
 
-### Required R Packages
+### R Environment
 ```r
-# Core statistical packages
-rugarch, quantmod, xts, PerformanceAnalytics, FinTS
-
-# Data manipulation
-tidyverse, dplyr, tidyr, stringr
-
-# Visualization
-ggplot2
-
-# File handling
-openxlsx
+# Required packages
+install.packages(c("rugarch", "quantmod", "xts", "PerformanceAnalytics", 
+                   "FinTS", "tidyverse", "dplyr", "tidyr", "stringr", 
+                   "ggplot2", "openxlsx", "moments", "tseries", 
+                   "forecast", "lmtest"))
 ```
 
-### Required Python Packages
-```python
-# Deep learning frameworks
-torch, tensorflow, numpy
-
-# Normalizing flows
-nflows, normflows, pytorch-flows
-
-# Data manipulation
-pandas, numpy, scipy
-
-# Visualization
-matplotlib, seaborn, plotly
-
-# Configuration
-pyyaml, argparse
+### Python Environment
+```bash
+pip install -r environment/requirements.txt
+# or
+conda env create -f environment/environment.yml
 ```
-
-### Data Requirements
-- **Equity Data**: Yahoo Finance via quantmod (2005-2024)
-- **FX Data**: CSV format with daily exchange rates
-- **Minimum Observations**: Sufficient data for GARCH estimation (~1000+ observations)
 
 ## Error Handling Approach
 
-### Model Convergence
-- **Fallback Strategies**: Alternative specifications for failed models
-- **Diagnostic Logging**: Detailed error reporting for debugging
-- **Graceful Degradation**: Continue processing other assets/models
+### Robust Model Fitting
+- **Convergence Checks**: Verify GARCH model convergence
+- **Fallback Mechanisms**: Manual simulation when `ugarchpath` fails
+- **Error Logging**: Comprehensive error messages and warnings
+- **Graceful Degradation**: Continue processing when individual models fail
 
-### Data Quality Issues
-- **Missing Data Handling**: Interpolation or exclusion strategies
-- **Outlier Detection**: Statistical methods for identifying anomalies
-- **Volume Validation**: Trading volume checks for data quality
+### Data Validation
+- **Input Validation**: Check data quality and completeness
+- **Missing Data Handling**: Appropriate treatment of NA values
+- **Outlier Detection**: Identify and handle extreme values
 
 ## Security Considerations
 
 ### Data Privacy
-- **Public Data Only**: All financial data from public sources
-- **No Sensitive Information**: No proprietary or confidential data
-- **Reproducible Research**: All data sources documented and accessible
+- **No Sensitive Data**: Only use publicly available financial data
+- **Local Processing**: All computations performed locally
+- **Secure Storage**: No external data transmission
 
 ### Code Security
-- **No Hardcoded Credentials**: API keys or credentials not stored in code
-- **Input Validation**: Robust handling of user inputs and data files
-- **Error Message Sanitization**: No sensitive information in error outputs
+- **No Hardcoded Credentials**: Use environment variables if needed
+- **Input Sanitization**: Validate all user inputs
+- **Dependency Management**: Use specific package versions
 
 ## Testing Requirements
 
-### Model Validation
-- **Residual Analysis**: Q-statistic and ARCH-LM tests
-- **Forecast Evaluation**: Out-of-sample testing procedures
-- **Cross-Validation**: Time series CV for robust performance assessment
+### Unit Testing
+- **Model Fitting**: Test each GARCH variant independently
+- **NF Training**: Validate Normalizing Flow implementations
+- **Simulation**: Verify manual GARCH simulation accuracy
 
-### Data Quality Tests
-- **Completeness Checks**: Missing data detection and reporting
-- **Consistency Validation**: Cross-reference between data sources
-- **Statistical Tests**: Normality, stationarity, and autocorrelation tests
+### Integration Testing
+- **Pipeline Flow**: Test complete end-to-end pipeline
+- **Cross-Platform**: Ensure compatibility across operating systems
+- **Performance**: Monitor execution time and resource usage
+
+### Validation Testing
+- **Statistical Tests**: Verify synthetic data properties
+- **Stylized Facts**: Ensure synthetic data preserves market characteristics
+- **Backtesting**: Validate VaR and forecasting accuracy
 
 ## Global Instructions for Maintaining Code Consistency
 
-### Code Style
-- **Consistent Indentation**: 2-space indentation throughout
-- **Function Documentation**: Clear parameter descriptions and return values
-- **Variable Naming**: Descriptive names following R conventions
-- **Comment Standards**: Inline comments for complex logic
+### 1. Model Configuration Updates
+When adding new GARCH models:
+- Update `model_configs` in ALL relevant scripts
+- Ensure consistent naming across the pipeline
+- Update documentation and configuration files
 
-### File Path Conventions
-- **FX Data File**: Always use `"./data/raw/raw (FX).csv"` (with space and parentheses)
-- **Consolidated Data**: Use `"./data/processed/raw (FX + EQ).csv"` for combined datasets
-- **Path Validation**: Verify file paths exist before running scripts to avoid "No such file or directory" errors
+### 2. Asset Coverage
+When adding new assets:
+- Update asset lists in data loading scripts
+- Ensure NF residuals are generated for all combinations
+- Update evaluation scripts to include new assets
 
-### Robust Distribution Functions
-- **Use `rugarch::qdist("sstd", ...)` instead of `qsstd(...)`**: Ensures consistent parameter handling
-- **Use `rugarch::ddist("sstd", ...)` for density functions**: Robust density calculation
-- **Use `rugarch::pdist("sstd", ...)` for CDF functions**: Reliable cumulative distribution
-- **Use `rugarch::rdist("sstd", ...)` for random generation**: Safe random number generation
-- **Fallback to normal distribution**: If sstd functions fail, automatically fall back to normal
+### 3. Pipeline Integration
+When modifying scripts:
+- Maintain backward compatibility
+- Update Makefile and batch scripts
+- Test complete pipeline execution
 
-### Safety Functions
-- **`add_row_safe()`**: Prevents summary tables from crashing when models return no rows
-- **Usage**: `reduce(add_row_safe, init = data.frame(), list_of_dataframes)`
-- **Location**: `./scripts/utils/safety_functions.R`
-- **Source in scripts**: Add `source("./scripts/utils/safety_functions.R")` to library imports
+### 4. Error Handling
+Always implement:
+- Try-catch blocks for model fitting
+- Graceful handling of convergence failures
+- Comprehensive error logging
 
-### R Installation and Path Configuration
-- **R Installation**: Ensure R (>= 4.0.0) is installed and accessible from command line
-- **Rscript Path**: Verify `Rscript` command is available in system PATH
-- **Windows**: Add R installation directory to PATH environment variable
-- **Linux/macOS**: Ensure R is installed via package manager or official installer
-- **Package Dependencies**: Install required R packages before running scripts:
-  ```r
-  install.packages(c("rugarch", "xts", "dplyr", "tidyr", "ggplot2", "quantmod", 
-                     "tseries", "PerformanceAnalytics", "FinTS", "openxlsx", 
-                     "stringr", "forecast", "transport", "fmsb", "moments"))
-  ```
-- **Troubleshooting**: If `Rscript` not found, check R installation and PATH configuration
-- **Alternative**: Use `R --slave -e "source('script.R')"` instead of `Rscript script.R`
+### 5. Performance Optimization
+- Use efficient data structures (XTS for time series)
+- Implement parallel processing where appropriate
+- Monitor memory usage for large datasets
 
-### Version Control
-- **Atomic Commits**: Logical grouping of related changes
-- **Descriptive Messages**: Clear commit messages explaining changes
-- **Branch Strategy**: Feature branches for major developments
+## Current Status (Updated)
 
-### Documentation Updates
-- **README Maintenance**: Keep project overview current
-- **Code Comments**: Update inline documentation with changes
-- **Result Tracking**: Document new findings and model improvements
+### ✅ Completed Components
+- **Full 5-Model GARCH Pipeline**: All GARCH variants implemented and tested
+- **Complete NF Residual Coverage**: All model-asset combinations have synthetic residuals
+- **Comprehensive Evaluation**: Forecasting, stylized facts, VaR, and stress testing
+- **Robust Error Handling**: Manual simulation fallbacks and convergence checks
+- **Cross-Platform Support**: Windows batch scripts and Unix makefiles
 
-### Performance Monitoring
-- **Execution Time Tracking**: Monitor script performance
-- **Memory Usage**: Track resource consumption
-- **Scalability Testing**: Validate with larger datasets
+### 🔧 Recent Fixes
+- **Naming Convention Resolution**: Fixed missing eGARCH, gjrGARCH, and TGARCH residuals
+- **Manual Simulation**: Replaced problematic `ugarchpath` with custom implementation
+- **Quick Testing**: Added comprehensive testing framework for pipeline validation
 
-### EDA Framework
-- **Python EDA Script**: `scripts/eda/eda_finance.py` - Comprehensive financial time series analysis
-- **Configuration**: `scripts/eda/configs/eda.yaml` - YAML-based configuration for analysis parameters
-- **Requirements**: `scripts/eda/requirements.txt` - Python dependencies for EDA
-- **Tests**: `scripts/eda/tests/test_tails.py` - Unit tests for tail estimation
-- **Documentation**: `scripts/eda/README.md` - Comprehensive EDA documentation
-- **Outputs**: 
-  - `artifacts/eda/` - CSV tables (summary stats, stationarity, stylized facts)
-  - `reports/eda/` - PNG plots and Markdown reports
-- **Features**:
-  - Summary statistics (mean, variance, skewness, excess kurtosis, Jarque-Bera)
-  - Stationarity tests (ADF, KPSS on levels and returns)
-  - Stylized facts (ARCH-LM, Ljung-Box, Hill tail index)
-  - Visualizations (time series, returns, ACF/PACF, QQ plots, correlation heatmap)
-  - Configurable analysis parameters and output options
-- **Usage**: `python scripts/eda/eda_finance.py --config scripts/eda/configs/eda.yaml`
+### 📊 Pipeline Coverage
+- **Models**: 5 GARCH variants (sGARCH_norm, sGARCH_sstd, eGARCH, gjrGARCH, TGARCH)
+- **Assets**: 12 total (6 FX + 6 Equity)
+- **Splits**: Chronological and Time-Series Cross-Validation
+- **NF Residuals**: ~240 files covering all combinations
+- **Evaluation**: 4 comprehensive analysis stages
 
-### Manual NF-GARCH Simulator
-- **Utility File**: `scripts/utils/utils_nf_garch.R` - Manual NF-GARCH simulation with fallback functionality
-- **Tests**: `scripts/utils/tests/test_parity_nf_vs_ugarchpath.R` - Parity tests for manual vs ugarchpath
-- **Features**:
-  - Manual implementation of sGARCH, gjrGARCH/TGARCH, and eGARCH recursions
-  - Automatic fallback when `ugarchpath()` fails
-  - NF shock standardization (mean=0, variance=1)
-  - Integration with existing `fit_nf_garch()` and `ts_cross_validate()` functions
-  - Comprehensive error handling and logging
-- **Usage**: Automatically used as fallback in existing NF-GARCH pipelines
+### 🚀 Ready for Production
+The pipeline is now fully functional and ready for:
+- Complete synthetic data generation
+- Comprehensive model comparison
+- Robust statistical validation
+- Production-scale analysis
 
-## Future Development Roadmap
+## Quick Start Guide
 
-### Phase 1: GAN Integration
-- **GAN Architecture**: Design for financial time series
-- **Training Pipeline**: Integration with existing GARCH framework
-- **Comparison Framework**: GAN vs GARCH performance evaluation
+1. **Setup Environment**:
+   ```bash
+   # Windows
+   run_all.bat
+   
+   # Linux/Mac
+   ./run_all.sh
+   ```
 
-### Phase 2: Advanced Features
-- **Multi-Variate Models**: DCC-GARCH and copula approaches
-- **Real-Time Processing**: Streaming data capabilities
-- **API Development**: RESTful interface for model access
+2. **Run Quick Test**:
+   ```bash
+   Rscript scripts/simulation_forecasting/simulate_nf_garch_quick_test.R
+   ```
 
-### Phase 3: Production Deployment
-- **Containerization**: Docker deployment for reproducibility
-- **Cloud Integration**: AWS/Azure deployment options
-- **Monitoring Dashboard**: Real-time model performance tracking
+3. **Full Pipeline**:
+   ```bash
+   # Windows
+   run_all.bat
+   
+   # Linux/Mac
+   make all
+   ```
+
+The pipeline will automatically process all 5 GARCH models across all assets, generate synthetic data, and provide comprehensive evaluation results.

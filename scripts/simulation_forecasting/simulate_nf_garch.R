@@ -171,33 +171,31 @@ ts_cross_validate <- function(returns, model_type, dist_type = "sstd", submodel 
         resid_slice <- nf_innovations[innovation_index:(innovation_index + n_sim - 1)]
         innovation_index <- innovation_index + n_sim
         
-        # Try ugarchpath first
-        sim_returns <- tryCatch({
-          sim <- ugarchpath(spec,
-                           n.sim = n_sim,
-                           m.sim = 1,
-                           presigma = tail(sigma(fit), 1),
-                           preresiduals = tail(residuals(fit), 1),
-                           prereturns = tail(fitted(fit), 1),
-                           innovations = resid_slice,
-                           pars = coef(fit))
-          fitted(sim)
-        }, error = function(e) {
-          message("⚠️ [CV] ugarchpath failed, manual NF simulation used: ", conditionMessage(e))
-          NULL
-        })
+        # Commented out ugarchpath - using manual calculation only
+        # sim_returns <- tryCatch({
+        #   sim <- ugarchpath(spec,
+        #                    n.sim = n_sim,
+        #                    m.sim = 1,
+        #                    presigma = tail(sigma(fit), 1),
+        #                    preresiduals = tail(residuals(fit), 1),
+        #                    prereturns = tail(fitted(fit), 1),
+        #                    innovations = resid_slice,
+        #                    pars = coef(fit))
+        #   fitted(sim)
+        # }, error = function(e) {
+        #   message("⚠️ [CV] ugarchpath failed, manual NF simulation used: ", conditionMessage(e))
+        #   NULL
+        # })
         
-        # Fallback: manual simulator
-        if (is.null(sim_returns)) {
-          manual <- simulate_nf_garch(
-            fit,
-            z_nf    = resid_slice,
-            horizon = n_sim,
-            model   = model_type,
-            submodel = submodel
-          )
-          sim_returns <- manual$returns
-        }
+        # Use manual simulator directly
+        manual <- simulate_nf_garch(
+          fit,
+          z_nf    = resid_slice,
+          horizon = n_sim,
+          model   = model_type,
+          submodel = submodel
+        )
+        sim_returns <- manual$returns
         
         if (!is.null(sim_returns)) {
           actual <- test_set[1:min(length(sim_returns), length(test_set))]
@@ -335,8 +333,8 @@ for (config_name in names(model_configs))
 {
   cfg <- model_configs[[config_name]]
   
-  equity_chrono_split_fit <- fit_models(equity_train_returns, model_type = cfg$model, dist_type = cfg$dist, submodel = cfg$submodel)
-  fx_chrono_split_fit     <- fit_models(fx_train_returns, model_type = cfg$model, dist_type = cfg$dist, submodel = cfg$submodel)
+  equity_chrono_split_fit <- fit_models(equity_train_returns, model_type = cfg$model, dist_type = cfg$distribution, submodel = cfg$submodel)
+  fx_chrono_split_fit     <- fit_models(fx_train_returns, model_type = cfg$model, dist_type = cfg$distribution, submodel = cfg$submodel)
   
   Fitted_Chrono_Split_models[[paste0("equity_", config_name)]] <- equity_chrono_split_fit
   Fitted_Chrono_Split_models[[paste0("fx_", config_name)]]     <- fx_chrono_split_fit
@@ -357,7 +355,7 @@ run_all_cv_models <- function(returns_list, model_configs, window_size = 500, fo
       tryCatch({
         ts_cross_validate(ret, 
                           model_type = cfg$model, 
-                          dist_type  = cfg$dist, 
+                          dist_type  = cfg$distribution, 
                           submodel   = cfg$submodel,
                           window_size = window_size,
                           forecast_horizon = forecast_horizon)
@@ -491,26 +489,26 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
     
     sim_returns <- NULL
     
-    # Try ugarchpath first
-    sim_returns <- tryCatch({
-      sim <- ugarchpath(
-        spec,
-        n.sim = n_sim,
-        m.sim = 1,
-        presigma = tail(sigma(fit), 1),
-        preresiduals = tail(residuals(fit), 1),
-        prereturns = prereturns_val,
-        innovations = head(nf_resid, n_sim),
-        pars = ordered_pars
-      )
-      fitted(sim)
-    }, error = function(e) {
-      message("⚠️ ugarchpath failed, switching to manual NF simulation: ", conditionMessage(e))
-      NULL
-    })
+    # # Try ugarchpath first
+    # sim_returns <- tryCatch({
+    #   sim <- ugarchpath(
+    #     spec,
+    #     n.sim = n_sim,
+    #     m.sim = 1,
+    #     presigma = tail(sigma(fit), 1),
+    #     preresiduals = tail(residuals(fit), 1),
+    #     prereturns = prereturns_val,
+    #     innovations = head(nf_resid, n_sim),
+    #     pars = ordered_pars
+    #   )
+    #   fitted(sim)
+    # }, error = function(e) {
+    #   message("⚠️ ugarchpath failed, switching to manual NF simulation: ", conditionMessage(e))
+    #   NULL
+    # })
     
-    # Fallback: manual simulator
-    if (is.null(sim_returns)) {
+    # # Fallback: manual simulator
+    # if (is.null(sim_returns)) {
       manual <- simulate_nf_garch(
         fit,
         z_nf    = head(nf_resid, n_sim),
@@ -519,7 +517,7 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
         submodel = model_config[["submodel"]]
       )
       sim_returns <- manual$returns
-    }
+    # }
     
     fitted_values <- sim_returns
     mse <- mean((asset_returns - fitted_values)^2, na.rm = TRUE)
