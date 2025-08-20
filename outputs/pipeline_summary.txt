@@ -1,0 +1,115 @@
+=== NF-GARCH PIPELINE SUMMARY ===
+Date: 20319 
+Time: 1755582641 
+
+Output files generated: 105 
+  - outputs/eda/figures/AAPL_histogram.png 
+  - outputs/eda/figures/AMZN_histogram.png 
+  - outputs/eda/figures/CAT_histogram.png 
+  - outputs/eda/figures/DJT_histogram.png 
+  - outputs/eda/figures/EURUSD_histogram.png 
+  - outputs/eda/figures/EURZAR_histogram.png 
+  - outputs/eda/figures/GBPCNY_histogram.png 
+  - outputs/eda/figures/GBPUSD_histogram.png 
+  - outputs/eda/figures/GBPZAR_histogram.png 
+  - outputs/eda/figures/MLGO_histogram.png 
+  - outputs/eda/figures/MSFT_histogram.png 
+  - outputs/eda/figures/NVDA_histogram.png 
+  - outputs/eda/figures/PDCO_histogram.png 
+  - outputs/eda/figures/PG_histogram.png 
+  - outputs/eda/figures/price_comparison_usdzar.png 
+  - outputs/eda/figures/USDZAR_histogram.png 
+  - outputs/eda/figures/WMT_histogram.png 
+  - outputs/model_eval/figures/AAPL_real_vs_synthetic.png 
+  - outputs/model_eval/figures/AAPL_volatility.png 
+  - outputs/model_eval/figures/AMZN_forecast_comparison.png 
+  - outputs/model_eval/figures/AMZN_real_vs_synthetic.png 
+  - outputs/model_eval/figures/AMZN_volatility.png 
+  - outputs/model_eval/figures/CAT_forecast_comparison.png 
+  - outputs/model_eval/figures/CAT_real_vs_synthetic.png 
+  - outputs/model_eval/figures/DJT_hist.png 
+  - outputs/model_eval/figures/DJT_real_vs_synthetic.png 
+  - outputs/model_eval/figures/DJT_volatility.png 
+  - outputs/model_eval/figures/eGARCH - EURUSD_volatility.png 
+  - outputs/model_eval/figures/eGARCH - EURZAR_volatility.png 
+  - outputs/model_eval/figures/eGARCH - GBPCNY_volatility.png 
+  - outputs/model_eval/figures/eGARCH - GBPUSD_volatility.png 
+  - outputs/model_eval/figures/eGARCH - GBPZAR_volatility.png 
+  - outputs/model_eval/figures/eGARCH - USDZAR_volatility.png 
+  - outputs/model_eval/figures/EURUSD_forecast_comparison.png 
+  - outputs/model_eval/figures/EURUSD_hist.png 
+  - outputs/model_eval/figures/EURUSD_real_vs_synthetic.png 
+  - outputs/model_eval/figures/EURUSD_volatility.png 
+  - outputs/model_eval/figures/EURZAR_forecast_comparison.png 
+  - outputs/model_eval/figures/EURZAR_hist.png 
+  - outputs/model_eval/figures/EURZAR_real_vs_synthetic.png 
+  - outputs/model_eval/figures/EURZAR_volatility.png 
+  - outputs/model_eval/figures/excess_kurtosis_comparison.png 
+  - outputs/model_eval/figures/GBPCNY_forecast_comparison.png 
+  - outputs/model_eval/figures/GBPCNY_hist.png 
+  - outputs/model_eval/figures/GBPCNY_real_vs_synthetic.png 
+  - outputs/model_eval/figures/GBPCNY_volatility.png 
+  - outputs/model_eval/figures/GBPUSD_forecast_comparison.png 
+  - outputs/model_eval/figures/GBPUSD_hist.png 
+  - outputs/model_eval/figures/GBPUSD_real_vs_synthetic.png 
+  - outputs/model_eval/figures/GBPUSD_volatility.png 
+  - outputs/model_eval/figures/GBPZAR_forecast_comparison.png 
+  - outputs/model_eval/figures/GBPZAR_hist.png 
+  - outputs/model_eval/figures/GBPZAR_real_vs_synthetic.png 
+  - outputs/model_eval/figures/GBPZAR_volatility.png 
+  - outputs/model_eval/figures/GJR-GARCH - AAPL_volatility.png 
+  - outputs/model_eval/figures/GJR-GARCH - JNJ_volatility.png 
+  - outputs/model_eval/figures/GJR-GARCH - JPM_volatility.png 
+  - outputs/model_eval/figures/GJR-GARCH - NVDA_volatility.png 
+  - outputs/model_eval/figures/GJR-GARCH - TSLA_volatility.png 
+  - outputs/model_eval/figures/JNJ_hist.png 
+  - outputs/model_eval/figures/JPM_hist.png 
+  - outputs/model_eval/figures/MLGO_hist.png 
+  - outputs/model_eval/figures/MLGO_real_vs_synthetic.png 
+  - outputs/model_eval/figures/MLGO_volatility.png 
+  - outputs/model_eval/figures/MSFT_forecast_comparison.png 
+  - outputs/model_eval/figures/MSFT_real_vs_synthetic.png 
+  - outputs/model_eval/figures/NVDA_forecast_comparison.png 
+  - outputs/model_eval/figures/NVDA_hist.png 
+  - outputs/model_eval/figures/NVDA_real_vs_synthetic.png 
+  - outputs/model_eval/figures/NVDA_volatility.png 
+  - outputs/model_eval/figures/PDCO_hist.png 
+  - outputs/model_eval/figures/PDCO_real_vs_synthetic.png 
+  - outputs/model_eval/figures/PDCO_volatility.png 
+  - outputs/model_eval/figures/PG_forecast_comparison.png 
+  - outputs/model_eval/figures/PG_real_vs_synthetic.png 
+  - outputs/model_eval/figures/TSLA_hist.png 
+  - outputs/model_eval/figures/TSLA_volatility.png 
+  - outputs/model_eval/figures/USDZAR_forecast_comparison.png 
+  - outputs/model_eval/figures/USDZAR_hist.png 
+  - outputs/model_eval/figures/USDZAR_real_vs_synthetic.png 
+  - outputs/model_eval/figures/USDZAR_volatility.png 
+  - outputs/model_eval/figures/volatility_clustering_heatmap.png 
+  - outputs/model_eval/figures/WMT_forecast_comparison.png 
+  - outputs/model_eval/figures/WMT_real_vs_synthetic.png 
+  - outputs/model_eval/tables/asset_type_comparison.csv 
+  - outputs/model_eval/tables/best_models_per_asset.csv 
+  - outputs/model_eval/tables/forecast_accuracy_summary.csv 
+  - outputs/model_eval/tables/garch_comparison.csv 
+  - outputs/model_eval/tables/model_ranking.csv 
+  - outputs/model_eval/tables/stylized_facts_summary.csv 
+  - outputs/pipeline_summary.txt 
+  - outputs/quick_test/quick_nf_test_results.csv 
+  - outputs/quick_test/quick_nf_test_summary.xlsx 
+  - outputs/quick_test/quick_test_results.csv 
+  - outputs/quick_test/quick_test_summary.xlsx 
+  - outputs/stress_tests/figures/model_convergence_stress.png 
+  - outputs/stress_tests/figures/model_performance_heatmap.png 
+  - outputs/stress_tests/figures/volatility_stress_comparison.png 
+  - outputs/stress_tests/tables/model_robustness_scores.csv 
+  - outputs/stress_tests/tables/stress_test_summary.csv 
+  - outputs/supplementary/all_per_asset_metrics.xlsx 
+  - outputs/var_backtest/figures/backtest_results_heatmap.png 
+  - outputs/var_backtest/figures/violation_rates_comparison.png 
+  - outputs/var_backtest/tables/model_performance_summary.csv 
+  - outputs/var_backtest/tables/var_backtest_summary.csv 
+
+NF residual files: 112 
+Result files: 0 
+
+=== PIPELINE COMPLETE ===

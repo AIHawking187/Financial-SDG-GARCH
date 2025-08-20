@@ -72,15 +72,46 @@ simulate_nf_garch <- function(fit,
   stopifnot(horizon > 0)
   model <- match.arg(model)
 
-  cf <- tryCatch(coef(fit), error = function(e) NULL)
+  # Use proper S4 access methods for rugarch objects
+  cf <- tryCatch({
+    if (isS4(fit)) {
+      fit@fit$coef
+    } else {
+      coef(fit)
+    }
+  }, error = function(e) NULL)
+  
   if (is.null(cf)) stop("No coefficients found in fit.")
 
-  # Pull last state from the fitted object
-  sig_last <- tryCatch(tail(sigma(fit), 1), error = function(e) NA)
-  eps_last <- tryCatch(tail(residuals(fit), 1), error = function(e) NA)
+  # Pull last state from the fitted object using S4 methods
+  sig_last <- tryCatch({
+    if (isS4(fit)) {
+      tail(fit@fit$sigma, 1)
+    } else {
+      tail(sigma(fit), 1)
+    }
+  }, error = function(e) NA)
+  
+  eps_last <- tryCatch({
+    if (isS4(fit)) {
+      tail(fit@fit$residuals, 1)
+    } else {
+      tail(residuals(fit), 1)
+    }
+  }, error = function(e) NA)
+  
   mu_last  <- if ("mu" %in% names(cf)) cf["mu"] else 0
 
-  if (!is.finite(sig_last) || sig_last <= 0) sig_last <- sd(fitted(fit), na.rm = TRUE)
+  if (!is.finite(sig_last) || sig_last <= 0) {
+    fitted_vals <- tryCatch({
+      if (isS4(fit)) {
+        fit@fit$fitted.values
+      } else {
+        fitted(fit)
+      }
+    }, error = function(e) NULL)
+    sig_last <- if (!is.null(fitted_vals)) sd(fitted_vals, na.rm = TRUE) else 0.01
+  }
   if (!is.finite(sig_last) || sig_last <= 0) sig_last <- 0.01
   if (!is.finite(eps_last)) eps_last <- 0
 

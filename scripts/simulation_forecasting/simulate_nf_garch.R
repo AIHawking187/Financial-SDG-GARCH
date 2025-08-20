@@ -163,7 +163,7 @@ ts_cross_validate <- function(returns, model_type, dist_type = "sstd", submodel 
       return(NULL)
     })
     
-    if (!is.null(fit)) {
+    if (!is.null(fit) && isS4(fit) && !is.null(fit@fit$coef)) {
       if (!is.null(nf_innovations)) {
         # Pull the appropriate slice of synthetic residuals
         n_sim <- forecast_horizon
@@ -468,14 +468,11 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
     # Fit GARCH
     fit <- ugarchfit(spec = spec, data = asset_returns)
     
-    # Create correctly ordered parameter vector
-    ordered_pars <- coef(spec)  # defaults from spec
-    fitted_pars <- coef(fit)    # estimated values
-    ordered_pars[names(fitted_pars)] <- fitted_pars  # overwrite fitted
-    
-    # Ensure named numeric vector (not list)
-    ordered_pars <- as.numeric(ordered_pars)
-    names(ordered_pars) <- names(coef(spec))
+    # Check if fit was successful
+    if (is.null(fit) || !isS4(fit) || is.null(fit@fit$coef)) {
+      message(paste("❌ Fit failed for", asset_name, model_config[["model"]]))
+      return(NULL)
+    }
     
     # Setup simulation
     n_sim <- floor(length(asset_returns) / 2)
@@ -484,52 +481,40 @@ fit_nf_garch <- function(asset_name, asset_returns, model_config, nf_resid) {
       return(NULL)
     }
     
-    prereturns_val <- tail(fitted(fit), 1)
-    if (is.na(prereturns_val)) prereturns_val <- mean(asset_returns, na.rm = TRUE)
-    
-    sim_returns <- NULL
-    
-    # # Try ugarchpath first
-    # sim_returns <- tryCatch({
-    #   sim <- ugarchpath(
-    #     spec,
-    #     n.sim = n_sim,
-    #     m.sim = 1,
-    #     presigma = tail(sigma(fit), 1),
-    #     preresiduals = tail(residuals(fit), 1),
-    #     prereturns = prereturns_val,
-    #     innovations = head(nf_resid, n_sim),
-    #     pars = ordered_pars
-    #   )
-    #   fitted(sim)
-    # }, error = function(e) {
-    #   message("⚠️ ugarchpath failed, switching to manual NF simulation: ", conditionMessage(e))
-    #   NULL
-    # })
-    
-    # # Fallback: manual simulator
-    # if (is.null(sim_returns)) {
-      manual <- simulate_nf_garch(
-        fit,
-        z_nf    = head(nf_resid, n_sim),
-        horizon = n_sim,
-        model   = model_config[["model"]],
-        submodel = model_config[["submodel"]]
-      )
-      sim_returns <- manual$returns
-    # }
+    # Use manual simulator directly
+    manual <- simulate_nf_garch(
+      fit,
+      z_nf    = head(nf_resid, n_sim),
+      horizon = n_sim,
+      model   = model_config[["model"]],
+      submodel = model_config[["submodel"]]
+    )
+    sim_returns <- manual$returns
     
     fitted_values <- sim_returns
     mse <- mean((asset_returns - fitted_values)^2, na.rm = TRUE)
     mae <- mean(abs(asset_returns - fitted_values), na.rm = TRUE)
     
+    # Get model information using S4 methods
+    aic_val <- tryCatch({
+      fit@fit$ics[1]
+    }, error = function(e) NA)
+    
+    bic_val <- tryCatch({
+      fit@fit$ics[2]
+    }, error = function(e) NA)
+    
+    loglik_val <- tryCatch({
+      fit@fit$LLH
+    }, error = function(e) NA)
+    
     return(data.frame(
       Model = model_config[["model"]],
       Distribution = model_config[["distribution"]],
       Asset = asset_name,
-      AIC = infocriteria(fit)[1],
-      BIC = infocriteria(fit)[2],
-      LogLikelihood = likelihood(fit),
+      AIC = aic_val,
+      BIC = bic_val,
+      LogLikelihood = loglik_val,
       MSE = mse,
       MAE = mae,
       SplitType = "Chrono"

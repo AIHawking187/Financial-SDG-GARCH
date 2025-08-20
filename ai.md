@@ -12,12 +12,16 @@ This project implements a comprehensive financial synthetic data generation pipe
 - **Python Packages**: `numpy`, `pandas`, `scikit-learn`, `matplotlib`, `seaborn`, `torch`, `torchvision`, `pyyaml`, `pathlib2`
 
 ### GARCH Models Implemented
-The pipeline now supports **ALL 5 GARCH model variants**:
+The pipeline now supports **ALL 5 GARCH model variants** with **dual engine support**:
 1. **sGARCH_norm**: Standard GARCH with normal distribution
 2. **sGARCH_sstd**: Standard GARCH with skewed Student's t distribution
 3. **eGARCH**: Exponential GARCH with asymmetric effects
 4. **gjrGARCH**: Glosten-Jagannathan-Runkle GARCH with leverage effects
 5. **TGARCH**: Threshold GARCH with regime-dependent behavior
+
+**Engine Options:**
+- **rugarch**: Standard implementation using the `rugarch` package (default)
+- **manual**: Custom implementation from scratch with CLI switch support
 
 ### Asset Classes
 - **FX (Foreign Exchange)**: EURUSD, GBPUSD, GBPCNY, USDZAR, GBPZAR, EURZAR
@@ -39,7 +43,10 @@ Financial-SDG-GARCH/
 │   ├── evaluation/       # Model evaluation and testing
 │   ├── model_fitting/    # GARCH model fitting and residual extraction
 │   ├── simulation_forecasting/ # NF-GARCH simulation and forecasting
-│   └── stress_tests/     # Stress testing scenarios
+│   ├── stress_tests/     # Stress testing scenarios
+│   ├── manual_garch/     # Manual GARCH implementation
+│   ├── engines/          # Engine selector and compatibility layer
+│   └── utils/            # Utility functions including CLI parser
 └── environment/          # Environment configuration files
 ```
 
@@ -61,6 +68,8 @@ Financial-SDG-GARCH/
 - **Synthetic Generation**: Generating synthetic residuals from trained NFs
 
 ### 4. NF-GARCH Simulation
+- **Dual Engine Support**: Both `rugarch` and manual implementations
+- **Engine Selector**: Uniform API for seamless switching between engines
 - **Manual Simulation**: Custom implementation replacing `ugarchpath`
 - **Residual Injection**: Injecting synthetic residuals into GARCH models
 - **Performance Evaluation**: MSE, MAE, AIC, BIC metrics
@@ -89,6 +98,19 @@ model_configs <- list(
   eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),
   TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")
 )
+```
+
+### Engine Selection
+The pipeline supports two engines with CLI switch:
+```bash
+# Use rugarch engine (default)
+Rscript simulate_nf_garch_engine.R --engine rugarch
+
+# Use manual engine
+Rscript simulate_nf_garch_engine.R --engine manual
+
+# Use config file
+Rscript simulate_nf_garch_engine.R --config config.yaml
 ```
 
 ### File Naming Conventions
