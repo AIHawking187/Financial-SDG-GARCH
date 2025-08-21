@@ -109,7 +109,7 @@ def generate_missing_residuals():
                     df.to_csv(output_path, index=False)
                     generated_count += 1
                 else:
-                    print(f"✓ Already exists: {filename}")
+                    print(f"[OK] Already exists: {filename}")
     
     print(f"\nSummary:")
     print(f"  - Missing combinations: {missing_count}")
@@ -129,11 +129,11 @@ def generate_missing_residuals():
     
     missing_final = expected_combinations - final_files
     if missing_final:
-        print(f"\n⚠️  Still missing: {len(missing_final)}")
+        print(f"\n[WARNING] Still missing: {len(missing_final)}")
         for missing in sorted(missing_final):
             print(f"  - {missing}")
     else:
-        print(f"\n✅ All combinations now available!")
+        print(f"\n[SUCCESS] All combinations now available!")
 
 if __name__ == "__main__":
     print("Generating missing NF residuals...")

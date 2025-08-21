@@ -22,6 +22,9 @@ if not exist "nf_generated_residuals" mkdir nf_generated_residuals
 echo Installing Python dependencies...
 pip install -r environment\requirements.txt
 
+echo Fixing Python environment issues...
+python scripts\utils\fix_python_env.py
+
 echo Checking R environment...
 Rscript --version >nul 2>&1
 if %errorlevel% neq 0 (
@@ -143,26 +146,7 @@ if %errorlevel% neq 0 (
 
 REM Step 15: Generate final summary (NEW)
 echo Step 15: Generating final summary...
-Rscript -e "
-library(openxlsx)
-cat('=== NF-GARCH PIPELINE SUMMARY ===\n')
-cat('Date:', Sys.Date(), '\n')
-cat('Time:', Sys.time(), '\n\n')
-
-# Check output files
-output_files <- list.files('outputs', recursive = TRUE, full.names = TRUE)
-cat('Output files generated:', length(output_files), '\n')
-
-# Check NF residual files
-nf_files <- list.files('nf_generated_residuals', pattern = '*.csv', full.names = TRUE)
-cat('NF residual files:', length(nf_files), '\n')
-
-# Check results files
-result_files <- list.files(pattern = '*Results*.xlsx', full.names = TRUE)
-cat('Result files:', length(result_files), '\n')
-
-cat('\n=== PIPELINE COMPLETE ===\n')
-"
+Rscript -e "library(openxlsx); cat('=== NF-GARCH PIPELINE SUMMARY ===\n'); cat('Date:', Sys.Date(), '\n'); cat('Time:', Sys.time(), '\n\n'); output_files <- list.files('outputs', recursive = TRUE, full.names = TRUE); cat('Output files generated:', length(output_files), '\n'); nf_files <- list.files('nf_generated_residuals', pattern = '*.csv', full.names = TRUE); cat('NF residual files:', length(nf_files), '\n'); result_files <- list.files(pattern = '*Results*.xlsx', full.names = TRUE); cat('Result files:', length(result_files), '\n'); cat('\n=== PIPELINE COMPLETE ===\n')"
 
 echo.
 echo ========================================

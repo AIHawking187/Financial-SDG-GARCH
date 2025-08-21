@@ -1,16 +1,8 @@
 #Reminder to Set your Working Directory
 set.seed(123)
-# Libraries
-library(openxlsx)
-library(quantmod)
-library(tseries)
-library(rugarch)
-library(xts)
-library(PerformanceAnalytics)
-library(FinTS)
-library(dplyr)
-library(tidyr)
-library(stringr)
+# Libraries with conflict resolution
+source("scripts/utils/conflict_resolution.R")
+initialize_pipeline()
 
 # Source utility functions
 source("./scripts/utils/safety_functions.R")

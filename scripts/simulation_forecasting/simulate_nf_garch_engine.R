@@ -15,17 +15,9 @@ cat("Using engine:", engine, "\n\n")
 cat("Starting NFGARCH script with engine:", engine, "...\n")
 set.seed(123)
 
-# Libraries
-library(openxlsx)
-library(quantmod)
-library(tseries)
-library(xts)
-library(PerformanceAnalytics)
-library(FinTS)
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(ggplot2)
+# Libraries with conflict resolution
+source("scripts/utils/conflict_resolution.R")
+initialize_pipeline()
 
 # Source utility functions
 source("./scripts/utils/safety_functions.R")
