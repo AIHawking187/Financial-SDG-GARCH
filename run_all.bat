@@ -148,6 +148,13 @@ REM Step 15: Generate final summary (NEW)
 echo Step 15: Generating final summary...
 Rscript -e "library(openxlsx); cat('=== NF-GARCH PIPELINE SUMMARY ===\n'); cat('Date:', Sys.Date(), '\n'); cat('Time:', Sys.time(), '\n\n'); output_files <- list.files('outputs', recursive = TRUE, full.names = TRUE); cat('Output files generated:', length(output_files), '\n'); nf_files <- list.files('nf_generated_residuals', pattern = '*.csv', full.names = TRUE); cat('NF residual files:', length(nf_files), '\n'); result_files <- list.files(pattern = '*Results*.xlsx', full.names = TRUE); cat('Result files:', length(result_files), '\n'); cat('\n=== PIPELINE COMPLETE ===\n')"
 
+REM Step 16: Consolidate all results (NEW)
+echo Step 16: Consolidating all results into comprehensive Excel document...
+Rscript scripts\utils\consolidate_results.R
+if %errorlevel% neq 0 (
+    echo WARNING: Results consolidation failed, continuing...
+)
+
 echo.
 echo ========================================
 echo PIPELINE EXECUTION COMPLETE!
@@ -157,6 +164,9 @@ echo Check the following directories for results:
 echo - outputs\ (all analysis results)
 echo - nf_generated_residuals\ (NF residual files)
 echo - *.xlsx files (comprehensive results)
+echo.
+echo CONSOLIDATED RESULTS:
+echo - Consolidated_NF_GARCH_Results.xlsx (ALL results in one file)
 echo.
 echo Both MANUAL and RUGARCH engines have been tested.
 echo.
