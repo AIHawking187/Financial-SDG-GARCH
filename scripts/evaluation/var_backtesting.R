@@ -1,10 +1,10 @@
-# VaR Backtesting Script
-# This script performs Value-at-Risk calculations and backtesting
-# for different GARCH models and confidence levels
+# Value-at-Risk Backtesting Analysis
+# This script implements comprehensive VaR calculation and backtesting procedures
+# for GARCH-family models to assess risk measurement accuracy and model validation
 
-set.seed(123)
+set.seed(123)  # Ensure reproducibility
 
-# Libraries
+# Load required libraries for VaR analysis and statistical testing
 library(openxlsx)
 library(quantmod)
 library(tseries)
@@ -18,25 +18,26 @@ library(stringr)
 library(ggplot2)
 library(forecast)
 
-cat("Starting VaR Backtesting Analysis...\n")
+cat("Starting Value-at-Risk Backtesting Analysis...\n")
 
-#### Import and Prepare Data ####
+# Data Import and Preprocessing
+# Load financial time series data and prepare for VaR analysis
 
-# Read price data
+# Load price data and convert to proper time series format
 raw_price_data <- read.csv("./data/processed/raw (FX + EQ).csv", row.names = 1)
 raw_price_data$Date <- lubridate::ymd(rownames(raw_price_data))
 rownames(raw_price_data) <- NULL
 raw_price_data <- raw_price_data %>% dplyr::select(Date, everything())
 
-# Extract date vector and price matrix
+# Extract time index and price matrix for processing
 date_index <- raw_price_data$Date
 price_data_matrix <- raw_price_data[, !(names(raw_price_data) %in% "Date")]
 
-# Define asset tickers
+# Define asset tickers for equity and foreign exchange instruments
 equity_tickers <- c("NVDA", "MSFT", "PG", "CAT", "WMT", "AMZN")
 fx_names <- c("EURUSD", "GBPUSD", "GBPCNY", "USDZAR", "GBPZAR", "EURZAR")
 
-# Create XTS objects
+# Convert price series to XTS objects for time series analysis
 equity_xts <- lapply(equity_tickers, function(ticker) {
   xts(price_data_matrix[[ticker]], order.by = date_index)
 })
@@ -47,13 +48,16 @@ fx_xts <- lapply(fx_names, function(ticker) {
 })
 names(fx_xts) <- fx_names
 
-# Calculate returns
+# Calculate log returns for volatility and risk modeling
 equity_returns <- lapply(equity_xts, function(x) CalculateReturns(x)[-1, ])
 fx_returns <- lapply(fx_xts, function(x) diff(log(x))[-1, ])
 
-#### Model Specifications ####
+# Model Specifications and VaR Parameters
+# Define GARCH model specifications and VaR confidence levels for risk assessment
 
 generate_spec <- function(model, dist = "sstd", submodel = NULL) {
+  # Create GARCH model specification for VaR calculation
+  # Uses ARMA(0,0) mean model and GARCH(1,1) variance model
   ugarchspec(
     mean.model = list(armaOrder = c(0,0)),
     variance.model = list(model = model, garchOrder = c(1,1), submodel = submodel),
@@ -61,43 +65,47 @@ generate_spec <- function(model, dist = "sstd", submodel = NULL) {
   )
 }
 
-# Define models to test
+# Define GARCH model variants for comprehensive risk assessment
 models <- list(
-  sGARCH_norm = list(model = "sGARCH", dist = "norm"),
-  sGARCH_sstd = list(model = "sGARCH", dist = "sstd"),
-  eGARCH = list(model = "eGARCH", dist = "sstd"),
-  gjrGARCH = list(model = "gjrGARCH", dist = "sstd"),
-  TGARCH = list(model = "fGARCH", dist = "sstd", submodel = "TGARCH")
+  sGARCH_norm = list(model = "sGARCH", dist = "norm"),      # Standard GARCH with normal errors
+  sGARCH_sstd = list(model = "sGARCH", dist = "sstd"),      # Standard GARCH with skewed Student-t
+  eGARCH = list(model = "eGARCH", dist = "sstd"),           # Exponential GARCH for asymmetric effects
+  gjrGARCH = list(model = "gjrGARCH", dist = "sstd"),       # GJR-GARCH for leverage effects
+  TGARCH = list(model = "fGARCH", dist = "sstd", submodel = "TGARCH")  # Threshold GARCH for regime effects
 )
 
-# Define confidence levels for VaR
+# Define confidence levels for VaR calculation (95% and 99% levels)
 confidence_levels <- c(0.95, 0.99)
 
-#### VaR Calculation Functions ####
+# VaR Calculation Functions
+# Implement various VaR estimation methods for comprehensive risk assessment
 
-# Calculate historical VaR
 calculate_historical_var <- function(returns, confidence_level) {
+  # Calculate historical VaR using empirical quantiles
+  # This method makes no distributional assumptions
   quantile(returns, 1 - confidence_level, na.rm = TRUE)
 }
 
-# Calculate parametric VaR (assuming normal distribution)
 calculate_parametric_var <- function(returns, confidence_level) {
+  # Calculate parametric VaR assuming normal distribution
+  # Uses sample mean and standard deviation with normal quantiles
   mean_return <- mean(returns, na.rm = TRUE)
   std_return <- sd(returns, na.rm = TRUE)
   z_score <- qnorm(1 - confidence_level)
   mean_return + z_score * std_return
 }
 
-# Calculate GARCH-based VaR
 calculate_garch_var <- function(returns, model_spec, confidence_level) {
+  # Calculate GARCH-based VaR using conditional volatility dynamics
+  # Incorporates time-varying volatility for more accurate risk measurement
   tryCatch({
-    # Fit GARCH model
+    # Fit GARCH model to capture volatility clustering
     fit <- ugarchfit(model_spec, data = returns, solver = "hybrid")
     
-    # Get conditional volatility
+    # Extract conditional volatility estimates
     sigma <- sigma(fit)
     
-    # Get conditional mean
+    # Extract conditional mean estimates
     mu <- fitted(fit)
     
     # Calculate VaR using the fitted distribution

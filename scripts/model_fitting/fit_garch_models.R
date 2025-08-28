@@ -1,75 +1,69 @@
-#Reminder to Set your Working Directory
-set.seed(123)
-# Libraries with conflict resolution
+# GARCH Model Fitting for Financial Time Series Analysis
+# This script implements and evaluates various GARCH-family models on FX and equity returns
+# to capture volatility clustering and leverage effects in financial markets
+
+set.seed(123)  # Ensure reproducibility
+
+# Load required libraries and initialize pipeline
 source("scripts/utils/conflict_resolution.R")
 initialize_pipeline()
-
-# Source utility functions
 source("./scripts/utils/safety_functions.R")
 
-
-#### Import the FX + EQ price data ####
-
-# Read CSV with Date in first column (row names)
+# Data Import and Preprocessing
+# Load the combined FX and equity price dataset
 
 raw_price_data <- read.csv("./data/processed/raw (FX + EQ).csv", row.names = 1)
 
-# Convert row names into a Date column
-
+# Convert date strings to proper Date objects for time series analysis
 raw_price_data$Date <- lubridate::ymd(rownames(raw_price_data))
 rownames(raw_price_data) <- NULL
 
-# Move Date to the front
-
+# Reorganize data with Date as the first column for clarity
 raw_price_data <- raw_price_data %>% dplyr::select(Date, everything())
 
 
-#### Clean the Price data####
-
-# Extract date vector
+# Data Cleaning and Organization
+# Prepare price data for time series analysis
 
 date_index <- raw_price_data$Date
 
-# Remove date column from data matrix
-
+# Extract price matrix without date column for processing
 price_data_matrix <- raw_price_data[, !(names(raw_price_data) %in% "Date")]
 
-# Define equity and FX tickers (ensure they match column names exactly)
-
+# Define asset tickers for equity and foreign exchange instruments
 equity_tickers <- c("NVDA", "MSFT", "PG", "CAT", "WMT", "AMZN")
 fx_names <- c("EURUSD", "GBPUSD", "GBPCNY", "USDZAR", "GBPZAR", "EURZAR")
 
-# Split into equity and FX price matrices
-
-equity_xts <- lapply(equity_tickers, function(ticker)
-{
+# Convert price series to XTS objects for time series analysis
+equity_xts <- lapply(equity_tickers, function(ticker) {
   xts(price_data_matrix[[ticker]], order.by = date_index)
 })
-
 names(equity_xts) <- equity_tickers
 
-fx_xts <- lapply(fx_names, function(ticker) 
-{
+fx_xts <- lapply(fx_names, function(ticker) {
   xts(price_data_matrix[[ticker]], order.by = date_index)
 })
-
 names(fx_xts) <- fx_names
 
 
 
-#### Calculate Returns on FX and Equity data ####
+# Return Calculation and Distribution Analysis
+# Compute log returns for volatility modeling and analyze their distributions
 
-# Calculate returns
-
+# Calculate log returns for equity and FX instruments
+# Equity returns use PerformanceAnalytics function, FX returns use direct log difference
 equity_returns <- lapply(equity_xts, function(x) CalculateReturns(x)[-1, ])
 fx_returns     <- lapply(fx_xts,     function(x) diff(log(x))[-1, ])
 
-#### Plotting returns data ####
+# Distribution Analysis and Visualization
+# Generate histograms with density overlays to examine return distributions
 
 plot_returns_and_save <- function(returns_list, prefix) {
+  # Create directory for saving distribution plots
   dir_path <- file.path("results/plots/exhaustive", paste0("histograms_", prefix))
   dir.create(dir_path, recursive = TRUE, showWarnings = FALSE)
   
+  # Generate histogram with normal density overlay for each asset
   for (name in names(returns_list)) {
     png(file.path(dir_path, paste0(name, "_histogram.png")), width = 800, height = 600)
     chart.Histogram(returns_list[[name]], method = c("add.density", "add.normal"),
@@ -78,103 +72,114 @@ plot_returns_and_save <- function(returns_list, prefix) {
   }
 }
 
-# Plot returns histograms to results folder under exhaustive plots  
-
+# Generate distribution plots for both asset classes
 plot_returns_and_save(equity_returns, "Real_Equity")
 plot_returns_and_save(fx_returns, "Real_FX")
 
 
-#### Model Generator ####
+# GARCH Model Specification and Fitting Functions
+# Define model specifications and automated fitting procedures
 
-generate_spec <- function(model, dist = "sstd", submodel = NULL) 
-{
+generate_spec <- function(model, dist = "sstd", submodel = NULL) {
+  # Create GARCH model specification with ARMA(0,0) mean model
+  # and GARCH(1,1) variance model for volatility clustering
   ugarchspec(
     mean.model = list(armaOrder = c(0,0)),
     variance.model = list(model = model, garchOrder = c(1,1), submodel = submodel),
     distribution.model = dist
   )
-} # Change the order of the ARCH and GARCH parameters here
+}
 
-#### Automate Fitting for Any Set of Returns #### 
+# Automated Model Fitting Function
+# Fits GARCH models to a list of return series with consistent specifications
 
-fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = NULL) 
-{
+fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = NULL) {
+  # Generate specifications for all series
   specs <- lapply(returns_list, function(x) generate_spec(model_type, dist_type, submodel))
+  
+  # Fit models with 20 observations reserved for out-of-sample evaluation
   fits <- mapply(function(ret, spec) ugarchfit(data = ret, spec = spec, out.sample = 20),
                  returns_list, specs, SIMPLIFY = FALSE)
   return(fits)
 }
 
-#### Set the GARCH Model Configs ####
+# Model Configuration Definitions
+# Define specifications for various GARCH-family models to capture different volatility dynamics
 
-# List of Different model configurations
 model_configs <- list(
-  sGARCH_norm  = list(model = "sGARCH", distribution = "norm", submodel = NULL),
-  sGARCH_sstd  = list(model = "sGARCH", distribution = "sstd", submodel = NULL),
-  gjrGARCH     = list(model = "gjrGARCH", distribution = "sstd", submodel = NULL),
-  eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),
-  TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")
-)  # Change the distributional assumptions of the ARCH and GARCH parameters here
+  sGARCH_norm  = list(model = "sGARCH", distribution = "norm", submodel = NULL),    # Standard GARCH with normal errors
+  sGARCH_sstd  = list(model = "sGARCH", distribution = "sstd", submodel = NULL),    # Standard GARCH with skewed Student-t
+  gjrGARCH     = list(model = "gjrGARCH", distribution = "sstd", submodel = NULL),   # GJR-GARCH for leverage effects
+  eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),     # Exponential GARCH for asymmetric effects
+  TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")  # Threshold GARCH for regime-dependent effects
+)
 
 
-#### Data Splitting ####
+# Data Splitting for Model Evaluation
+# Implement chronological and time-series cross-validation approaches
 
-## Chronological Data Split
-# Helper to get cutoff index
-get_split_index <- function(x, split_ratio = 0.65) 
-{
+# Chronological Data Split
+# Split data into training (65%) and testing (35%) sets for traditional evaluation
+
+get_split_index <- function(x, split_ratio = 0.65) {
+  # Calculate the index for splitting time series data
   return(floor(nrow(x) * split_ratio))
 }
 
-# Split returns into train/test
+# Create training and testing sets for both asset classes
 fx_train_returns <- lapply(fx_returns, function(x) x[1:get_split_index(x)])
 fx_test_returns  <- lapply(fx_returns, function(x) x[(get_split_index(x) + 1):nrow(x)])
 
 equity_train_returns <- lapply(equity_returns, function(x) x[1:get_split_index(x)])
 equity_test_returns  <- lapply(equity_returns, function(x) x[(get_split_index(x) + 1):nrow(x)])
 
-## Time-series cross-validation - Sliding Window Time-Series Cross-Validation
+# Time-Series Cross-Validation
+# Implement sliding window approach for robust model evaluation across time
 
-# Helper to get cutoff index and train across sliding windows
 ts_cross_validate <- function(returns, model_type, dist_type = "sstd", submodel = NULL, 
-                              window_size = 500, step_size = 50, forecast_horizon = 20) 
-{
+                              window_size = 500, step_size = 50, forecast_horizon = 20) {
+  # Perform sliding window time-series cross-validation
+  # This approach respects temporal ordering and provides robust performance estimates
+  
   n <- nrow(returns)
   results <- list()
   
   for (start_idx in seq(1, n - window_size - forecast_horizon, by = step_size)) {
+    # Define training and testing windows
     train_set <- returns[start_idx:(start_idx + window_size - 1)]
     test_set  <- returns[(start_idx + window_size):(start_idx + window_size + forecast_horizon - 1)]
     
-    # 🔍 Print diagnostics before fitting
-    message("📦 Start index: ", start_idx, 
+    # Print progress information for monitoring
+    message("Processing window: ", start_idx, 
             " | Train size: ", nrow(train_set), 
             " | Test size: ", nrow(test_set),
             " | Train SD: ", round(sd(train_set, na.rm = TRUE), 6))
     
     spec <- generate_spec(model_type, dist_type, submodel)
     
-    # 🔒 Try fitting GARCH model
+    # Fit GARCH model with error handling
     fit <- tryCatch({
       ugarchfit(data = train_set, spec = spec, solver = "hybrid")
     }, error = function(e) {
-      message("❌ Fit error at index ", start_idx, ": ", e$message)
+      message("Fit error at index ", start_idx, ": ", e$message)
       return(NULL)
     })
     
     if (!is.null(fit)) {
+      # Generate forecasts
       forecast <- tryCatch({
         ugarchforecast(fit, n.ahead = forecast_horizon)
       }, error = function(e) {
-        message("❌ Forecast error at index ", start_idx, ": ", e$message)
+        message("Forecast error at index ", start_idx, ": ", e$message)
         return(NULL)
       })
       
       if (!is.null(forecast)) {
+        # Evaluate forecast performance
         eval <- tryCatch({
           evaluate_model(fit, forecast, test_set, forecast_horizon)
         }, error = function(e) {
-          message("❌ Evaluation error at index ", start_idx, ": ", e$message)
+          message("Evaluation error at index ", start_idx, ": ", e$message)
           return(NULL)
         })
         
@@ -187,7 +192,7 @@ ts_cross_validate <- function(returns, model_type, dist_type = "sstd", submodel 
   }
   
   if (length(results) == 0) {
-    message("⚠️ No successful CV results for this series.")
+    message("No successful cross-validation results for this series.")
     return(NULL)
   }
   

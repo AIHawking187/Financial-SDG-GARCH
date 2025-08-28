@@ -1,44 +1,41 @@
-# NF-GARCH Simulation with Engine Selector
-# Supports both rugarch and manual engines via CLI switch
+# NF-GARCH Simulation and Forecasting
+# This script implements Normalizing Flow-enhanced GARCH models for financial time series
+# Supports both rugarch and manual engine implementations for comprehensive model comparison
 
-# Load CLI parser and engine selector
+# Load configuration and engine selection utilities
 source("scripts/utils/cli_parser.R")
 source("scripts/engines/engine_selector.R")
 
-# Print current configuration
+# Display current configuration and engine selection
 print_config()
-
-# Get engine setting
 engine <- get_engine()
 cat("Using engine:", engine, "\n\n")
 
-cat("Starting NFGARCH script with engine:", engine, "...\n")
-set.seed(123)
+cat("Starting NF-GARCH simulation with engine:", engine, "...\n")
+set.seed(123)  # Ensure reproducibility
 
-# Libraries with conflict resolution
+# Initialize pipeline and load utilities
 source("scripts/utils/conflict_resolution.R")
 initialize_pipeline()
-
-# Source utility functions
 source("./scripts/utils/safety_functions.R")
 
-#### Import and Process Data ####
+# Data Import and Preprocessing
+# Load and prepare financial time series data for NF-GARCH modeling
 
-# Read CSV with Date in first column (row names)
 raw_price_data <- read.csv("./data/processed/raw (FX + EQ).csv", row.names = 1)
 raw_price_data$Date <- lubridate::ymd(rownames(raw_price_data))
 rownames(raw_price_data) <- NULL
 raw_price_data <- raw_price_data %>% dplyr::select(Date, everything())
 
-# Extract date vector and price matrix
+# Extract time index and price matrix for processing
 date_index <- raw_price_data$Date
 price_data_matrix <- raw_price_data[, !(names(raw_price_data) %in% "Date")]
 
-# Define equity and FX tickers
+# Define asset tickers for equity and foreign exchange instruments
 equity_tickers <- c("NVDA", "MSFT", "PG", "CAT", "WMT", "AMZN")
 fx_names <- c("EURUSD", "GBPUSD", "GBPCNY", "USDZAR", "GBPZAR", "EURZAR")
 
-# Create XTS objects
+# Convert price series to XTS objects for time series analysis
 equity_xts <- lapply(equity_tickers, function(ticker) {
   xts(price_data_matrix[[ticker]], order.by = date_index)
 })
@@ -49,36 +46,38 @@ fx_xts <- lapply(fx_names, function(ticker) {
 })
 names(fx_xts) <- fx_names
 
-# Calculate returns
+# Calculate log returns for volatility modeling
 equity_returns <- lapply(equity_xts, function(x) CalculateReturns(x)[-1, ])
 fx_returns     <- lapply(fx_xts,     function(x) diff(log(x))[-1, ])
 
-#### Model Configurations ####
+# Model Configuration and Data Splitting
+# Define GARCH model specifications and implement chronological data splitting
 
 model_configs <- list(
-  sGARCH_norm  = list(model = "sGARCH", distribution = "norm", submodel = NULL),
-  sGARCH_sstd  = list(model = "sGARCH", distribution = "sstd", submodel = NULL),
-  gjrGARCH     = list(model = "gjrGARCH", distribution = "sstd", submodel = NULL),
-  eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),
-  TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")
+  sGARCH_norm  = list(model = "sGARCH", distribution = "norm", submodel = NULL),    # Standard GARCH with normal errors
+  sGARCH_sstd  = list(model = "sGARCH", distribution = "sstd", submodel = NULL),    # Standard GARCH with skewed Student-t
+  gjrGARCH     = list(model = "gjrGARCH", distribution = "sstd", submodel = NULL),   # GJR-GARCH for leverage effects
+  eGARCH       = list(model = "eGARCH", distribution = "sstd", submodel = NULL),     # Exponential GARCH for asymmetric effects
+  TGARCH       = list(model = "fGARCH", distribution = "sstd", submodel = "TGARCH")  # Threshold GARCH for regime-dependent effects
 )
 
-#### Data Splitting ####
+# Data Splitting for Model Training and Evaluation
+# Implement chronological split (65% training, 35% testing) for traditional evaluation
 
 get_split_index <- function(x, split_ratio = 0.65) {
   return(floor(nrow(x) * split_ratio))
 }
 
-# Split returns into train/test
+# Create training and testing sets for both asset classes
 fx_train_returns <- lapply(fx_returns, function(x) x[1:get_split_index(x)])
 fx_test_returns  <- lapply(fx_returns, function(x) x[(get_split_index(x) + 1):nrow(x)])
 
 equity_train_returns <- lapply(equity_returns, function(x) x[1:get_split_index(x)])
 equity_test_returns  <- lapply(equity_returns, function(x) x[(get_split_index(x) + 1):nrow(x)])
 
-#### Train GARCH Models ####
+# GARCH Model Training
+# Fit GARCH models to training data using the selected engine
 
-# Train model fits across 65/35 Chrono Split
 Fitted_Chrono_Split_models <- list()
 
 for (config_name in names(model_configs)) {
@@ -86,7 +85,7 @@ for (config_name in names(model_configs)) {
   
   cat("Fitting", config_name, "models...\n")
   
-  # Use engine_fit for both rugarch and manual engines
+  # Fit models using the selected engine (rugarch or manual)
   equity_chrono_split_fit <- lapply(equity_train_returns, function(ret) {
     engine_fit(model = cfg$model, returns = ret, dist = cfg$distribution, submodel = cfg$submodel, engine = engine)
   })
@@ -409,16 +408,34 @@ for (config_name in names(model_configs)) {
   }
 }
 
-# Combine all results
-nf_results <- c(nf_results_chrono, nf_results_cv)
-
 # Process results for saving
 nf_chrono_df <- if (length(nf_results_chrono) > 0) do.call(rbind, nf_results_chrono) else data.frame()
 nf_cv_df <- if (length(nf_results_cv) > 0) do.call(rbind, nf_results_cv) else data.frame()
-nf_results_df <- if (length(nf_results) > 0) do.call(rbind, nf_results) else data.frame()
+
+# Ensure both data frames have the same columns before combining
+if (nrow(nf_chrono_df) > 0 && nrow(nf_cv_df) > 0) {
+  # Add missing columns to chrono_df
+  if (!"WindowStart" %in% names(nf_chrono_df)) nf_chrono_df$WindowStart <- NA
+  if (!"WindowSize" %in% names(nf_chrono_df)) nf_chrono_df$WindowSize <- NA
+  if (!"ForecastHorizon" %in% names(nf_chrono_df)) nf_chrono_df$ForecastHorizon <- NA
+  
+  # Add missing columns to cv_df (shouldn't be needed but just in case)
+  if (!"WindowStart" %in% names(nf_cv_df)) nf_cv_df$WindowStart <- NA
+  if (!"WindowSize" %in% names(nf_cv_df)) nf_cv_df$WindowSize <- NA
+  if (!"ForecastHorizon" %in% names(nf_cv_df)) nf_cv_df$ForecastHorizon <- NA
+  
+  # Combine results
+  nf_results_df <- rbind(nf_chrono_df, nf_cv_df)
+} else if (nrow(nf_chrono_df) > 0) {
+  nf_results_df <- nf_chrono_df
+} else if (nrow(nf_cv_df) > 0) {
+  nf_results_df <- nf_cv_df
+} else {
+  nf_results_df <- data.frame()
+}
 
 if (nrow(nf_results_df) > 0) {
-  nf_results_df$Source <- "NF"
+nf_results_df$Source <- "NF"
 }
 
 #### Save Results ####
@@ -439,8 +456,8 @@ if (nrow(nf_cv_df) > 0) {
 
 # Combined results sheet
 if (nrow(nf_results_df) > 0) {
-  addWorksheet(wb, "NF_GARCH_Eval")
-  writeData(wb, "NF_GARCH_Eval", nf_results_df)
+addWorksheet(wb, "NF_GARCH_Eval")
+writeData(wb, "NF_GARCH_Eval", nf_results_df)
 }
 
 # Engine info sheet

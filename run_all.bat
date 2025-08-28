@@ -29,7 +29,7 @@ echo Checking R environment...
 Rscript --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: Rscript not found in PATH
-    echo Please run: scripts\utils\check_r_setup.bat
+    echo Please run: quick_install.R to set up R environment
     pause
     exit /b 1
 )
@@ -38,7 +38,7 @@ echo Generating session info files...
 Rscript -e "writeLines(capture.output(sessionInfo()), 'environment/R_sessionInfo.txt')"
 if %errorlevel% neq 0 (
     echo ERROR: Failed to generate R session info
-    echo Please check R installation and run: scripts\utils\check_r_setup.bat
+    echo Please check R installation and run: quick_install.R
     pause
     exit /b 1
 )
@@ -137,11 +137,25 @@ if %errorlevel% neq 0 (
     echo WARNING: VaR backtesting failed, continuing...
 )
 
+REM Step 13.5: Run NFGARCH VaR backtesting (NEW)
+echo Step 13.5: Running NFGARCH VaR backtesting...
+Rscript scripts\evaluation\nfgarch_var_backtesting.R
+if %errorlevel% neq 0 (
+    echo WARNING: NFGARCH VaR backtesting failed, continuing...
+)
+
 REM Step 14: Run stress tests
 echo Step 14: Running stress tests...
 Rscript scripts\stress_tests\evaluate_under_stress.R
 if %errorlevel% neq 0 (
     echo WARNING: Stress tests failed, continuing...
+)
+
+REM Step 14.5: Run NFGARCH stress testing (NEW)
+echo Step 14.5: Running NFGARCH stress testing...
+Rscript scripts\evaluation\nfgarch_stress_testing.R
+if %errorlevel% neq 0 (
+    echo WARNING: NFGARCH stress testing failed, continuing...
 )
 
 REM Step 15: Generate final summary (NEW)

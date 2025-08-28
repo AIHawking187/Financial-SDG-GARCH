@@ -1,0 +1,52 @@
+{
+  "data_preparation": {
+    "completed": false,
+    "timestamp": {},
+    "error": "Execution failed"
+  },
+  "garch_fitting": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "residual_extraction": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "nf_training": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "nf_evaluation": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "forecasting_evaluation": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "var_backtesting": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "stress_testing": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "stylized_facts": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  },
+  "consolidation": {
+    "completed": false,
+    "timestamp": {},
+    "error": {}
+  }
+}
