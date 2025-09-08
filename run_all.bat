@@ -46,6 +46,13 @@ pip freeze > environment\pip_freeze.txt
 
 echo Setup complete!
 
+REM Step 0: Run diagnostic script
+echo Step 0: Running pipeline diagnostic...
+Rscript scripts\utils\pipeline_diagnostic.R
+if %errorlevel% neq 0 (
+    echo WARNING: Pipeline diagnostic failed, continuing...
+)
+
 REM Step 1: Generate missing NF residuals (NEW)
 echo Step 1: Generating missing NF residuals...
 python scripts\model_fitting\generate_missing_nf_residuals.py
@@ -88,57 +95,52 @@ if %errorlevel% neq 0 (
     echo WARNING: NF evaluation failed, continuing...
 )
 
-REM Step 7: Run NF-GARCH simulation with MANUAL engine (NEW)
+REM Step 7: Run NF-GARCH simulation with MANUAL engine
 echo Step 7: Running NF-GARCH simulation (MANUAL engine)...
 Rscript scripts\simulation_forecasting\simulate_nf_garch_engine.R --engine manual
 if %errorlevel% neq 0 (
     echo WARNING: Manual engine simulation failed, continuing...
 )
 
-REM Step 8: Run NF-GARCH simulation with RUGARCH engine (NEW)
+REM Step 8: Run NF-GARCH simulation with RUGARCH engine
 echo Step 8: Running NF-GARCH simulation (RUGARCH engine)...
 Rscript scripts\simulation_forecasting\simulate_nf_garch_engine.R --engine rugarch
 if %errorlevel% neq 0 (
     echo WARNING: rugarch engine simulation failed, continuing...
 )
 
-REM Step 9: Run legacy NF-GARCH simulation (for backward compatibility)
-echo Step 9: Running legacy NF-GARCH simulation...
-Rscript scripts\simulation_forecasting\simulate_nf_garch.R
-if %errorlevel% neq 0 (
-    echo WARNING: Legacy simulation failed, continuing...
-)
+REM Step 9: Legacy NF-GARCH simulation removed (using engine-based approach)
 
-REM Step 10: Run forecasts
-echo Step 10: Running forecasts...
+REM Step 9: Run forecasts
+echo Step 9: Running forecasts...
 Rscript scripts\simulation_forecasting\forecast_garch_variants.R
 if %errorlevel% neq 0 (
     echo WARNING: Forecasting failed, continuing...
 )
 
-REM Step 11: Evaluate forecasts
-echo Step 11: Evaluating forecasts...
+REM Step 10: Evaluate forecasts
+echo Step 10: Evaluating forecasts...
 Rscript scripts\evaluation\wilcoxon_winrate_analysis.R
 if %errorlevel% neq 0 (
     echo WARNING: Forecast evaluation failed, continuing...
 )
 
-REM Step 12: Run stylized fact tests
-echo Step 12: Running stylized fact tests...
+REM Step 11: Run stylized fact tests
+echo Step 11: Running stylized fact tests...
 Rscript scripts\evaluation\stylized_fact_tests.R
 if %errorlevel% neq 0 (
     echo WARNING: Stylized fact tests failed, continuing...
 )
 
-REM Step 13: Run VaR backtesting
-echo Step 13: Running VaR backtesting...
+REM Step 12: Run VaR backtesting
+echo Step 12: Running VaR backtesting...
 Rscript scripts\evaluation\var_backtesting.R
 if %errorlevel% neq 0 (
     echo WARNING: VaR backtesting failed, continuing...
 )
 
-REM Step 13.5: Run NFGARCH VaR backtesting (NEW)
-echo Step 13.5: Running NFGARCH VaR backtesting...
+REM Step 13: Run NFGARCH VaR backtesting
+echo Step 13: Running NFGARCH VaR backtesting...
 Rscript scripts\evaluation\nfgarch_var_backtesting.R
 if %errorlevel% neq 0 (
     echo WARNING: NFGARCH VaR backtesting failed, continuing...
@@ -151,22 +153,36 @@ if %errorlevel% neq 0 (
     echo WARNING: Stress tests failed, continuing...
 )
 
-REM Step 14.5: Run NFGARCH stress testing (NEW)
-echo Step 14.5: Running NFGARCH stress testing...
+REM Step 15: Run NFGARCH stress testing
+echo Step 15: Running NFGARCH stress testing...
 Rscript scripts\evaluation\nfgarch_stress_testing.R
 if %errorlevel% neq 0 (
     echo WARNING: NFGARCH stress testing failed, continuing...
 )
 
-REM Step 15: Generate final summary (NEW)
-echo Step 15: Generating final summary...
+REM Step 16: Generate final summary
+echo Step 16: Generating final summary...
 Rscript -e "library(openxlsx); cat('=== NF-GARCH PIPELINE SUMMARY ===\n'); cat('Date:', Sys.Date(), '\n'); cat('Time:', Sys.time(), '\n\n'); output_files <- list.files('outputs', recursive = TRUE, full.names = TRUE); cat('Output files generated:', length(output_files), '\n'); nf_files <- list.files('nf_generated_residuals', pattern = '*.csv', full.names = TRUE); cat('NF residual files:', length(nf_files), '\n'); result_files <- list.files(pattern = '*Results*.xlsx', full.names = TRUE); cat('Result files:', length(result_files), '\n'); cat('\n=== PIPELINE COMPLETE ===\n')"
 
-REM Step 16: Consolidate all results (NEW)
-echo Step 16: Consolidating all results into comprehensive Excel document...
-Rscript scripts\utils\consolidate_results.R
+REM Step 17: Consolidate all results
+echo Step 17: Consolidating all results into comprehensive Excel document...
+Rscript scripts\core\consolidation.R
 if %errorlevel% neq 0 (
     echo WARNING: Results consolidation failed, continuing...
+)
+
+REM Step 18: Validate pipeline results
+echo Step 18: Validating pipeline results...
+python validate_pipeline.py
+if %errorlevel% neq 0 (
+    echo WARNING: Pipeline validation failed, continuing...
+)
+
+REM Step 19: Generate appendix log
+echo Step 19: Generating appendix log...
+python generate_appendix_log.py
+if %errorlevel% neq 0 (
+    echo WARNING: Appendix log generation failed, continuing...
 )
 
 echo.

@@ -222,7 +222,7 @@ def generate_appendix_log():
     print("Validation Scripts:")
     print("  - validate_pipeline.py")
     print("  - make_tables.py")
-    print("  - consolidate_results_fixed.R")
+    print("  - consolidate_results.R")
     print()
     
     print("=" * 80)

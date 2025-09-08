@@ -65,7 +65,7 @@ for (file in nf_results_files) {
   tryCatch({
     sheets <- excel_sheets(file)
     for (sheet in sheets) {
-      if (grepl("Eval", sheet)) {
+      if (grepl("Eval|NF_GARCH|Chrono", sheet)) {
         nf_data <- read_excel(file, sheet = sheet)
         nf_data$Engine <- engine_name
         nf_data$Sheet_Name <- sheet
@@ -228,17 +228,26 @@ confidence_levels <- c(0.95, 0.99)
 var_results <- list()
 
 # Process each NF-GARCH result
+cat("Processing", length(nf_results), "NF-GARCH result sets\n")
 for (result_name in names(nf_results)) {
   nf_data <- nf_results[[result_name]]
+  cat("Processing result:", result_name, "with", nrow(nf_data), "rows\n")
   
   # Extract engine and model information
   engine <- nf_data$Engine[1]
   sheet_name <- nf_data$Sheet_Name[1]
   
+  # Skip summary sheets that don't have asset-level data
+  if (!("Asset" %in% colnames(nf_data))) {
+    cat("Skipping summary sheet:", sheet_name, "\n")
+    next
+  }
+  
   # Process each asset-model combination
   for (i in 1:nrow(nf_data)) {
     asset <- nf_data$Asset[i]
     model <- nf_data$Model[i]
+    cat("Processing asset:", asset, "model:", model, "\n")
     
     # Skip if we don't have returns for this asset
     if (!(asset %in% names(all_returns))) {
@@ -249,12 +258,23 @@ for (result_name in names(nf_results)) {
     
     # Get NF innovations for this asset-model combination
     # We'll use the NF residuals as innovations for VaR calculation
+    # Try different naming patterns for NF residual files
+    asset_type <- if (asset %in% equity_tickers) "equity" else "fx"
     nf_residuals_file <- file.path("nf_generated_residuals", 
-                                  paste0(asset, "_", model, "_nf_residuals.csv"))
+                                  paste0(model, "_", asset_type, "_", asset, "_residuals_synthetic.csv"))
     
     if (file.exists(nf_residuals_file)) {
       nf_residuals <- read.csv(nf_residuals_file)
-      nf_innovations <- nf_residuals$nf_innovation
+      # Try different column names for the NF innovations
+      if ("residual" %in% colnames(nf_residuals)) {
+        nf_innovations <- nf_residuals$residual
+      } else if ("nf_innovation" %in% colnames(nf_residuals)) {
+        nf_innovations <- nf_residuals$nf_innovation
+      } else if (ncol(nf_residuals) > 0) {
+        nf_innovations <- nf_residuals[[1]]  # Use first column
+      } else {
+        nf_innovations <- returns
+      }
     } else {
       # If NF residuals not available, use standard residuals
       nf_innovations <- returns
