@@ -79,7 +79,7 @@ library(ggplot2)
 
 #### Import the FX data ####
 
-FX_data <- read.csv(file = "./data/raw/raw (FX).csv") %>% 
+FX_data <- read.csv(file = "./data/raw/fx_equity_prices.csv") %>% 
   dplyr::mutate(
     Date = stringr::str_replace_all(Date, "-", ""),  # Remove dashes from dates
     Date = lubridate::ymd(Date)  # Convert strings to Date objects

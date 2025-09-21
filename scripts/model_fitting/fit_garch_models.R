@@ -98,7 +98,8 @@ fit_models <- function(returns_list, model_type, dist_type = "sstd", submodel = 
   specs <- lapply(returns_list, function(x) generate_spec(model_type, dist_type, submodel))
   
   # Fit models with 20 observations reserved for out-of-sample evaluation
-  fits <- mapply(function(ret, spec) ugarchfit(data = ret, spec = spec, out.sample = 20),
+  fits <- mapply(function(ret, spec) ugarchfit(data = ret, spec = spec, out.sample = 20, 
+                                               solver = "hybrid", solver.control = list(tol = 1e-6, maxiter = 1000)),
                  returns_list, specs, SIMPLIFY = FALSE)
   return(fits)
 }
@@ -159,7 +160,8 @@ ts_cross_validate <- function(returns, model_type, dist_type = "sstd", submodel 
     
     # Fit GARCH model with error handling
     fit <- tryCatch({
-      ugarchfit(data = train_set, spec = spec, solver = "hybrid")
+      ugarchfit(data = train_set, spec = spec, solver = "hybrid", 
+                solver.control = list(tol = 1e-6, maxiter = 1000))
     }, error = function(e) {
       message("Fit error at index ", start_idx, ": ", e$message)
       return(NULL)
