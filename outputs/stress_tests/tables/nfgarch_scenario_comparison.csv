@@ -1,6 +1,6 @@
 "Scenario","Avg_Robustness_Score","Avg_Max_Drawdown","Total_Models","Total_Assets"
-"Correlation Breakdown",1,-0.516574665847524,4,12
-"Market Crash",2,-0.497062164040763,4,12
-"Flash Crash",3,-0.476818220358421,4,12
-"Volatility Spike",4,-0.535372173601161,4,12
-"Black Swan Event",5,-0.45585045057891,4,12
+"Correlation Breakdown",1,-0.524619056982585,4,12
+"Market Crash",2,-0.505076559820459,4,12
+"Flash Crash",3,-0.484775270288254,4,12
+"Volatility Spike",4,-0.543420672066202,4,12
+"Black Swan Event",5,-0.463725448828665,4,12

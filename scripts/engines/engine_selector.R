@@ -137,6 +137,10 @@ engine_path <- function(fit, z, h, model, submodel = NULL, engine = NULL) {
         distribution.model = fit$distribution
       )
       
+      # Standardize parameter names for rugarch
+      coef_standardized <- fit$coef
+      names(coef_standardized) <- standardize_rugarch_params(names(coef_standardized), model, fit$distribution)
+      
       sim <- ugarchpath(
         spec,
         n.sim = h,
@@ -145,7 +149,7 @@ engine_path <- function(fit, z, h, model, submodel = NULL, engine = NULL) {
         preresiduals = tail(fit$residuals, 1),
         prereturns = tail(fit$fitted, 1),
         innovations = z[1:h],
-        pars = fit$coef
+        pars = coef_standardized
       )
       
       return(list(
@@ -155,18 +159,106 @@ engine_path <- function(fit, z, h, model, submodel = NULL, engine = NULL) {
       ))
       
     }, error = function(e) {
-      # Fallback to manual simulation
+      # Fallback to manual simulation for rugarch
       warning("ugarchpath failed, using manual simulation: ", conditionMessage(e))
       return(manual_path(fit$manual_fit, z, h, model, submodel))
     })
     
   } else if (engine == "manual") {
-    # Use manual path
-    return(manual_path(fit$manual_fit, z, h, model, submodel))
+    # Use manual path - this should work without errors
+    result <- manual_path(fit$manual_fit, z, h, model, submodel)
+    
+    # Ensure we return the correct length
+    if (length(result$returns) != h) {
+      warning("Manual path returned incorrect length. Expected: ", h, ", Got: ", length(result$returns))
+    }
+    
+    return(result)
     
   } else {
     stop("Unknown engine: ", engine)
   }
+}
+
+# Helper function to standardize parameter names for rugarch
+standardize_rugarch_params <- function(param_names, model, distribution) {
+  # Map parameter names to rugarch expected format
+  standardized <- param_names
+  
+  # Standard GARCH parameter mappings
+  if (model == "sGARCH") {
+    if (distribution == "norm") {
+      # Expected: mu, omega, alpha1, beta1
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+    } else if (distribution == "std" || distribution == "sstd") {
+      # Expected: mu, omega, alpha1, beta1, shape (and skew for sstd)
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "nu"] <- "shape"
+      standardized[param_names == "skew"] <- "skew"
+    }
+  } else if (model == "gjrGARCH") {
+    if (distribution == "norm") {
+      # Expected: mu, omega, alpha1, beta1, gamma1
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "gamma"] <- "gamma1"
+    } else if (distribution == "std" || distribution == "sstd") {
+      # Expected: mu, omega, alpha1, beta1, gamma1, shape (and skew for sstd)
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "gamma"] <- "gamma1"
+      standardized[param_names == "nu"] <- "shape"
+      standardized[param_names == "skew"] <- "skew"
+    }
+  } else if (model == "eGARCH") {
+    if (distribution == "norm") {
+      # Expected: mu, omega, alpha1, beta1, gamma1
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "gamma"] <- "gamma1"
+    } else if (distribution == "std" || distribution == "sstd") {
+      # Expected: mu, omega, alpha1, beta1, gamma1, shape (and skew for sstd)
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "gamma"] <- "gamma1"
+      standardized[param_names == "nu"] <- "shape"
+      standardized[param_names == "skew"] <- "skew"
+    }
+  } else if (model == "fGARCH" && submodel == "TGARCH") {
+    if (distribution == "norm") {
+      # Expected: mu, omega, alpha1, beta1, eta11
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "eta"] <- "eta11"
+    } else if (distribution == "std" || distribution == "sstd") {
+      # Expected: mu, omega, alpha1, beta1, eta11, shape (and skew for sstd)
+      standardized[param_names == "mu"] <- "mu"
+      standardized[param_names == "omega"] <- "omega"
+      standardized[param_names == "alpha"] <- "alpha1"
+      standardized[param_names == "beta"] <- "beta1"
+      standardized[param_names == "eta"] <- "eta11"
+      standardized[param_names == "nu"] <- "shape"
+      standardized[param_names == "skew"] <- "skew"
+    }
+  }
+  
+  return(standardized)
 }
 
 # Helper function to get standardized residuals for NF training

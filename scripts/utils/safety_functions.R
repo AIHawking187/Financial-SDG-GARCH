@@ -85,22 +85,43 @@ safe_require <- function(package_name) {
   })
 }
 
-# Safe data validation
-validate_data <- function(data, required_cols = NULL) {
+# Data validation functions
+validate_data <- function(data, name = "data") {
   if (is.null(data)) {
-    warning("Data is NULL")
-    return(FALSE)
+    stop("Data is NULL: ", name)
   }
   
   if (nrow(data) == 0) {
-    warning("Data has no rows")
+    warning("Data has 0 rows: ", name)
     return(FALSE)
   }
   
-  if (!is.null(required_cols)) {
-    missing_cols <- setdiff(required_cols, colnames(data))
-    if (length(missing_cols) > 0) {
-      warning("Missing required columns: ", paste(missing_cols, collapse = ", "))
+  if (ncol(data) == 0) {
+    warning("Data has 0 columns: ", name)
+    return(FALSE)
+  }
+  
+  # Check for all NA columns
+  na_cols <- sapply(data, function(x) all(is.na(x)))
+  if (any(na_cols)) {
+    warning("Columns with all NA values: ", paste(names(data)[na_cols], collapse = ", "))
+  }
+  
+  cat("✓ Data validation passed for:", name, "(", nrow(data), "rows,", ncol(data), "cols)\n")
+  return(TRUE)
+}
+
+# Model convergence safety
+check_model_convergence <- function(fit, model_name = "model") {
+  if (is.null(fit)) {
+    warning("Model fit is NULL:", model_name)
+    return(FALSE)
+  }
+  
+  # Check for convergence
+  if (exists("convergence", where = fit)) {
+    if (fit$convergence != 0) {
+      warning("Model did not converge:", model_name, "convergence code:", fit$convergence)
       return(FALSE)
     }
   }

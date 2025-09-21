@@ -20,6 +20,7 @@ initialize_pipeline()
 PIPELINE_CONFIG <- list(
   components = c(
     "nf_residual_generation", # Generate missing NF residuals
+    "eda",                    # EDA analysis (NEW)
     "data_prep",           # Data loading and preprocessing
     "garch_fitting",       # Standard GARCH model fitting
     "residual_extraction", # Extract residuals for NF training
@@ -30,14 +31,19 @@ PIPELINE_CONFIG <- list(
     "legacy_nf_garch",     # Legacy NF-GARCH simulation
     "forecasting",         # Forecasting evaluation
     "forecast_evaluation", # Evaluate forecasts (Wilcoxon)
-    "var_backtesting",     # VaR backtesting
-    "stress_testing",      # Stress testing
     "stylized_facts",      # Stylized facts analysis
+    "var_backtesting",     # VaR backtesting
+    "nfgarch_var_backtesting", # NFGARCH VaR backtesting (NEW)
+    "stress_testing",      # Stress testing
+    "nfgarch_stress_testing", # NFGARCH stress testing (NEW)
     "final_summary",       # Generate final summary
-    "consolidation"        # Final results consolidation
+    "consolidation",       # Final results consolidation
+    "validation",          # Pipeline validation
+    "appendix_log"         # Generate appendix log
   ),
   dependencies = list(
-    "data_prep" = "nf_residual_generation",
+    "eda" = "nf_residual_generation",
+    "data_prep" = "eda",
     "garch_fitting" = "data_prep",
     "residual_extraction" = "garch_fitting",
     "nf_training" = "residual_extraction",
@@ -47,11 +53,15 @@ PIPELINE_CONFIG <- list(
     "legacy_nf_garch" = c("nf_evaluation", "garch_fitting"),
     "forecasting" = "garch_fitting",
     "forecast_evaluation" = "forecasting",
-    "var_backtesting" = c("garch_fitting", "nf_garch_manual", "nf_garch_rugarch"),
-    "stress_testing" = c("garch_fitting", "nf_garch_manual", "nf_garch_rugarch"),
     "stylized_facts" = c("garch_fitting", "nf_garch_manual", "nf_garch_rugarch"),
-    "final_summary" = c("var_backtesting", "stress_testing", "stylized_facts"),
-    "consolidation" = c("final_summary")
+    "var_backtesting" = c("garch_fitting", "nf_garch_manual", "nf_garch_rugarch"),
+    "nfgarch_var_backtesting" = c("var_backtesting", "nf_garch_manual", "nf_garch_rugarch"),
+    "stress_testing" = c("garch_fitting", "nf_garch_manual", "nf_garch_rugarch"),
+    "nfgarch_stress_testing" = c("stress_testing", "nf_garch_manual", "nf_garch_rugarch"),
+    "final_summary" = c("var_backtesting", "nfgarch_var_backtesting", "stress_testing", "nfgarch_stress_testing", "stylized_facts"),
+    "consolidation" = "final_summary",
+    "validation" = "consolidation",
+    "appendix_log" = "validation"
   ),
   checkpoint_dir = "checkpoints",
   results_dir = "modular_results"
@@ -119,20 +129,26 @@ run_nf_residual_generation <- function() {
   })
 }
 
+run_eda <- function() {
+  cat("=== RUNNING EDA ANALYSIS ===\n")
+  
+  tryCatch({
+    system("Rscript scripts/eda/eda_summary_stats.R")
+    save_checkpoint("eda")
+    cat("✓ EDA analysis completed\n")
+    
+  }, error = function(e) {
+    save_checkpoint("eda", "failed", e$message)
+    stop("EDA analysis failed: ", e$message)
+  })
+}
+
 run_data_prep <- function() {
   cat("=== RUNNING DATA PREPARATION ===\n")
   
   tryCatch({
-    # Load and process data
-    source("scripts/modular_pipeline/components/data_preparation.R")
-    
-    # Save processed data
-    saveRDS(list(
-      fx_returns = fx_returns,
-      equity_returns = equity_returns,
-      date_index = date_index
-    ), file.path(PIPELINE_CONFIG$results_dir, "processed_data.rds"))
-    
+    # Load and process data - this is handled by individual components
+    # No separate data prep step needed as it's integrated into other components
     save_checkpoint("data_prep")
     cat("✓ Data preparation completed\n")
     
@@ -146,7 +162,7 @@ run_garch_fitting <- function() {
   cat("=== RUNNING GARCH MODEL FITTING ===\n")
   
   tryCatch({
-    source("scripts/modular_pipeline/components/garch_fitting.R")
+    system("Rscript scripts/model_fitting/fit_garch_models.R")
     save_checkpoint("garch_fitting")
     cat("✓ GARCH fitting completed\n")
     
@@ -160,7 +176,7 @@ run_residual_extraction <- function() {
   cat("=== RUNNING RESIDUAL EXTRACTION ===\n")
   
   tryCatch({
-    source("scripts/modular_pipeline/components/residual_extraction.R")
+    system("Rscript scripts/model_fitting/extract_residuals.R")
     save_checkpoint("residual_extraction")
     cat("✓ Residual extraction completed\n")
     
@@ -174,7 +190,7 @@ run_nf_training <- function() {
   cat("=== RUNNING NF MODEL TRAINING ===\n")
   
   tryCatch({
-    system("python scripts/modular_pipeline/components/nf_training.py")
+    system("python scripts/model_fitting/train_nf_models.py")
     save_checkpoint("nf_training")
     cat("✓ NF training completed\n")
     
@@ -188,7 +204,7 @@ run_nf_evaluation <- function() {
   cat("=== RUNNING NF MODEL EVALUATION ===\n")
   
   tryCatch({
-    system("python scripts/modular_pipeline/components/nf_evaluation.py")
+    system("python scripts/model_fitting/evaluate_nf_fit.py")
     save_checkpoint("nf_evaluation")
     cat("✓ NF evaluation completed\n")
     
@@ -230,7 +246,7 @@ run_forecasting <- function() {
   cat("=== RUNNING FORECASTING EVALUATION ===\n")
   
   tryCatch({
-    source("scripts/modular_pipeline/components/forecasting_evaluation.R")
+    system("Rscript scripts/simulation_forecasting/forecast_garch_variants.R")
     save_checkpoint("forecasting")
     cat("✓ Forecasting evaluation completed\n")
     
@@ -244,7 +260,7 @@ run_var_backtesting <- function() {
   cat("=== RUNNING VAR BACKTESTING ===\n")
   
   tryCatch({
-    source("scripts/modular_pipeline/components/var_backtesting.R")
+    system("Rscript scripts/evaluation/var_backtesting.R")
     save_checkpoint("var_backtesting")
     cat("✓ VaR backtesting completed\n")
     
@@ -254,11 +270,25 @@ run_var_backtesting <- function() {
   })
 }
 
+run_nfgarch_var_backtesting <- function() {
+  cat("=== RUNNING NFGARCH VAR BACKTESTING ===\n")
+  
+  tryCatch({
+    system("Rscript scripts/evaluation/nfgarch_var_backtesting.R")
+    save_checkpoint("nfgarch_var_backtesting")
+    cat("✓ NFGARCH VaR backtesting completed\n")
+    
+  }, error = function(e) {
+    save_checkpoint("nfgarch_var_backtesting", "failed", e$message)
+    stop("NFGARCH VaR backtesting failed: ", e$message)
+  })
+}
+
 run_stress_testing <- function() {
   cat("=== RUNNING STRESS TESTING ===\n")
   
   tryCatch({
-    source("scripts/modular_pipeline/components/stress_testing.R")
+    system("Rscript scripts/stress_tests/evaluate_under_stress.R")
     save_checkpoint("stress_testing")
     cat("✓ Stress testing completed\n")
     
@@ -268,11 +298,25 @@ run_stress_testing <- function() {
   })
 }
 
+run_nfgarch_stress_testing <- function() {
+  cat("=== RUNNING NFGARCH STRESS TESTING ===\n")
+  
+  tryCatch({
+    system("Rscript scripts/evaluation/nfgarch_stress_testing.R")
+    save_checkpoint("nfgarch_stress_testing")
+    cat("✓ NFGARCH stress testing completed\n")
+    
+  }, error = function(e) {
+    save_checkpoint("nfgarch_stress_testing", "failed", e$message)
+    stop("NFGARCH stress testing failed: ", e$message)
+  })
+}
+
 run_stylized_facts <- function() {
   cat("=== RUNNING STYLIZED FACTS ANALYSIS ===\n")
   
   tryCatch({
-    source("scripts/modular_pipeline/components/stylized_facts.R")
+    system("Rscript scripts/evaluation/stylized_fact_tests.R")
     save_checkpoint("stylized_facts")
     cat("✓ Stylized facts analysis completed\n")
     
@@ -329,13 +373,41 @@ run_consolidation <- function() {
   cat("=== RUNNING RESULTS CONSOLIDATION ===\n")
   
   tryCatch({
-    source("scripts/utils/consolidate_results.R")
+    system("Rscript scripts/utils/consolidate_results.R")
     save_checkpoint("consolidation")
     cat("✓ Results consolidation completed\n")
     
   }, error = function(e) {
     save_checkpoint("consolidation", "failed", e$message)
     stop("Results consolidation failed: ", e$message)
+  })
+}
+
+run_validation <- function() {
+  cat("=== RUNNING PIPELINE VALIDATION ===\n")
+  
+  tryCatch({
+    system("python validate_pipeline.py")
+    save_checkpoint("validation")
+    cat("✓ Pipeline validation completed\n")
+    
+  }, error = function(e) {
+    save_checkpoint("validation", "failed", e$message)
+    stop("Pipeline validation failed: ", e$message)
+  })
+}
+
+run_appendix_log <- function() {
+  cat("=== GENERATING APPENDIX LOG ===\n")
+  
+  tryCatch({
+    system("python generate_appendix_log.py")
+    save_checkpoint("appendix_log")
+    cat("✓ Appendix log generation completed\n")
+    
+  }, error = function(e) {
+    save_checkpoint("appendix_log", "failed", e$message)
+    stop("Appendix log generation failed: ", e$message)
   })
 }
 
@@ -361,6 +433,7 @@ run_component <- function(component) {
   # Execute component
   switch(component,
     "nf_residual_generation" = run_nf_residual_generation(),
+    "eda" = run_eda(),
     "data_prep" = run_data_prep(),
     "garch_fitting" = run_garch_fitting(),
     "residual_extraction" = run_residual_extraction(),
@@ -371,11 +444,15 @@ run_component <- function(component) {
     "legacy_nf_garch" = run_legacy_nf_garch(),
     "forecasting" = run_forecasting(),
     "forecast_evaluation" = run_forecast_evaluation(),
-    "var_backtesting" = run_var_backtesting(),
-    "stress_testing" = run_stress_testing(),
     "stylized_facts" = run_stylized_facts(),
+    "var_backtesting" = run_var_backtesting(),
+    "nfgarch_var_backtesting" = run_nfgarch_var_backtesting(),
+    "stress_testing" = run_stress_testing(),
+    "nfgarch_stress_testing" = run_nfgarch_stress_testing(),
     "final_summary" = run_final_summary(),
     "consolidation" = run_consolidation(),
+    "validation" = run_validation(),
+    "appendix_log" = run_appendix_log(),
     stop("Unknown component: ", component)
   )
   
